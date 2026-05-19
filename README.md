@@ -1,63 +1,61 @@
-# ORIGIN AI Workspace
+<div align="center">
+  <h1>🌐 ORIGIN AI Workspace</h1>
+  <p><strong>Self-hosted AI workbench for developers, students, and NAS users.</strong></p>
 
-ORIGIN AI Workspace is a modern self-hosted AI workbench for developers, students, NAS users, and personal workflows. It combines AI chat, multi-model configuration, local files, an extensible RAG foundation, and production-oriented deployment in a lightweight monorepo.
+  <p>
+    <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
+    <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
+    <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
+    <img src="https://img.shields.io/badge/FastAPI-0.115-teal" alt="FastAPI">
+    <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python">
+  </p>
+</div>
 
-> v0.1 is designed as a real foundation: runnable frontend, FastAPI backend, authentication, chat persistence, upload pipeline, RAG abstractions, Docker Compose, Nginx, and a maintainable architecture for future releases.
+---
+
+## What is ORIGIN?
+
+A lightweight, open-source AI workspace you run on your own machine. Chat with multiple AI models, manage files, monitor usage — all through a clean dark UI. Deploy with a single `docker compose up`.
+
+> Not a cloud service. Not a SaaS demo. Your keys, your data, your machine.
+
+---
 
 ## Features
 
-- JWT authentication with registration, login, password hashing, session persistence, and user profile APIs.
-- ChatGPT-style AI chat with streaming responses, Markdown rendering, code highlighting, session sidebar, model switching, temperature, max tokens, system prompt, copy, stop, and regenerate-ready API shape.
-- Provider architecture for OpenAI, DeepSeek, Qwen, and OpenAI-compatible APIs.
-- Dashboard with model health cards, token usage, latency chart, system status, and quick actions.
-- File upload for PDF, TXT, Markdown, DOCX, and images with parser hooks and upload history.
-- RAG-ready architecture: vector store abstraction, embedding service interface, chunking pipeline, document indexing models, and retrieval service.
-- Markdown blog engine with tags, article pages, syntax highlighting, and dark-mode reading experience.
-- Production-minded FastAPI structure: API versioning, services, repositories, middleware, logging, exception handling, rate limiting, SQLAlchemy, Alembic, PostgreSQL, and Redis.
-- Docker Compose stack with web, API, PostgreSQL, Redis, and Nginx reverse proxy.
-- Responsive dark glass UI built with Next.js 15, TypeScript, TailwindCSS, shadcn-style primitives, and Framer Motion.
+| Category | What you get |
+|----------|-------------|
+| **AI Chat** | Streaming responses, Markdown + code highlighting, multi-model switching (OpenAI / DeepSeek / Qwen / custom), temperature & token controls, conversation history |
+| **Auth** | JWT registration & login, bcrypt password hashing, session persistence |
+| **Dashboard** | Token usage, model health cards, latency charts, system status |
+| **Files** | Upload PDF, TXT, MD, DOCX, images — parser pipeline ready for RAG |
+| **Blog** | Built-in Markdown blog engine with tags, syntax highlighting, dark mode |
+| **Deploy** | Docker Compose with PostgreSQL, Redis, Nginx — one command to start |
 
-## Screenshots
-
-UI screenshots will be added under `docs/assets` as the product evolves.
-
-## Tech Stack
-
-- Frontend: Next.js 15, React 19, TypeScript, TailwindCSS, Framer Motion, shadcn-style UI primitives.
-- Backend: FastAPI, Python 3.11, SQLAlchemy 2, Alembic, Pydantic Settings.
-- Data: PostgreSQL, Redis.
-- AI: OpenAI SDK-compatible streaming, provider abstraction, RAG service interfaces.
-- Deploy: Docker, Docker Compose, Nginx.
-
-## Repository Structure
-
-```txt
-apps/
-  web/      Next.js application
-  api/      FastAPI application
-packages/
-  ui/       Shared UI primitives
-  config/   Shared config presets
-  shared/   Shared TypeScript types
-docker/
-  nginx/    Reverse proxy config
-docs/       Architecture and deployment docs
-```
+---
 
 ## Quick Start
 
 ```bash
-npm install
+git clone https://github.com/1304674612/-origin-ai-workspace.git
+cd -origin-ai-workspace
 cp .env.example .env
-npm run dev:api
-npm run dev:web
+# Edit .env with your API keys
+docker compose up -d --build
 ```
 
-The web app runs at [http://localhost:3000](http://localhost:3000). The API runs at [http://localhost:8000](http://localhost:8000).
+Open **http://localhost:8080** and you're in.
 
-For local API development, create a Python 3.11 virtual environment and install dependencies:
+<details>
+<summary>Local development setup</summary>
 
 ```bash
+# Frontend
+npm install
+npm run dev:web        # http://localhost:3000
+
+# Backend
 cd apps/api
 python3.11 -m venv .venv
 source .venv/bin/activate
@@ -65,71 +63,95 @@ pip install -e ".[dev]"
 alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+</details>
 
-## Docker Deployment
+---
 
-```bash
-cp .env.example .env
-docker compose up -d --build
+## Architecture
+
+```
+┌─────────────┐     ┌─────────────┐     ┌──────────────┐
+│  Next.js 15 │────▶│   Nginx     │────▶│   FastAPI     │
+│  (Port 3000)│     │  (Port 8080)│     │   (Port 8000) │
+└─────────────┘     └─────────────┘     └──────┬───────┘
+                                               │
+                          ┌────────────────────┼────────────────────┐
+                          │                    │                    │
+                     ┌────▼────┐         ┌────▼────┐         ┌─────▼───┐
+                     │PostgreSQL│        │  Redis   │         │ Uploads │
+                     │   :5432  │        │  :6379   │         │ (Volume)│
+                     └─────────┘         └─────────┘         └─────────┘
 ```
 
-Services:
+| Layer | Stack |
+|-------|-------|
+| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS, Framer Motion |
+| Backend | FastAPI, Python 3.11+, SQLAlchemy 2 (async), Alembic |
+| Data | PostgreSQL 16, Redis 7 |
+| AI | OpenAI SDK-compatible streaming, pluggable provider abstraction |
+| Deploy | Docker, Docker Compose, Nginx |
 
-- Web: `http://localhost:3000`
-- API: `http://localhost:8000`
-- Nginx gateway: `http://localhost:8080`
-- PostgreSQL: persistent volume `postgres_data`
-- Redis: persistent volume `redis_data`
-- Uploads: persistent volume `uploads_data`
+---
 
-## Environment
+## Repository
 
-Important variables:
+```
+apps/
+  web/          Next.js application
+  api/          FastAPI backend
+packages/
+  ui/           Shared UI components (shadcn-style)
+  shared/       Shared TypeScript types
+  config/       Shared config presets
+docker/
+  nginx/        Reverse proxy config
+docs/           Architecture & deployment docs
+```
 
-- `JWT_SECRET_KEY`: must be changed in production.
-- `DATABASE_URL`: SQLAlchemy async PostgreSQL connection URL.
-- `REDIS_URL`: Redis connection URL for cache and rate limiting.
-- `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `QWEN_API_KEY`: provider credentials.
-- `OPENAI_COMPATIBLE_BASE_URL`: custom provider base URL.
-- `NEXT_PUBLIC_API_URL`: browser-facing API URL.
+---
 
 ## Roadmap
 
-### v0.1
+| Version | Focus |
+|---------|-------|
+| **v0.1** | AI Chat, JWT auth, Dashboard, Docker deploy |
+| **v0.2** | Local knowledge base, vector retrieval, document parsing |
+| **v0.3** | AI Agent, Workflow builder, automation |
+| **v1.0** | Plugin ecosystem, MCP support, multi-user, mobile UI |
 
-- AI Chat
-- Login authentication
-- Dashboard
-- Docker deployment
+---
 
-### v0.2
+## Environment Variables
 
-- Local knowledge base
-- Document parsing
-- Vector retrieval
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `JWT_SECRET_KEY` | **Yes** | Min 32 chars. Generate: `openssl rand -hex 32` |
+| `OPENAI_API_KEY` | For OpenAI | Or set `DEEPSEEK_API_KEY` / `QWEN_API_KEY` |
+| `DATABASE_URL` | No | Defaults to local PostgreSQL |
+| `REDIS_URL` | No | Defaults to local Redis |
+| `NEXT_PUBLIC_API_URL` | No | Browser-facing API URL |
 
-### v0.3
+See `.env.example` for the full list.
 
-- AI Agent
-- Workflow builder
-- Automation triggers
-
-### v1.0
-
-- Plugin ecosystem
-- MCP support
-- Multi-user workspaces
-- Mobile-first polish
+---
 
 ## Contributing
 
-Contributions are welcome. Please keep changes small, typed, tested when possible, and aligned with the existing architecture:
+Issues and PRs are welcome.
 
-1. Open an issue or discussion for larger design changes.
-2. Create a focused branch.
-3. Run frontend type checks and backend tests.
-4. Submit a PR with a clear description and UI screenshots when relevant.
+1. Open an issue for larger changes before coding
+2. Keep changes focused — one PR, one purpose
+3. Run `npm run typecheck` before pushing frontend changes
+4. Include screenshots for UI changes
+
+---
 
 ## License
 
-MIT
+MIT © 2026 Mickl
+
+---
+
+<div align="center">
+  <sub>Built with ❤️ for the self-hosting community</sub>
+</div>
