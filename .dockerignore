@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+apps/web/.next
+apps/web/node_modules
+apps/api/.venv
+apps/api/__pycache__
+apps/api/.pytest_cache
+apps/api/.ruff_cache
+uploads
+postgres-data
+redis-data
+*.log

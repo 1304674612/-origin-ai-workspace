@@ -1,0 +1,25 @@
+from typing import Annotated
+
+from fastapi import APIRouter, File, UploadFile
+
+from app.api.deps import CurrentUser, DbSession
+from app.schemas.file import FileAssetRead
+from app.services.files.file_service import FileService
+
+router = APIRouter()
+
+
+@router.get("", response_model=list[FileAssetRead])
+async def list_files(session: DbSession, current_user: CurrentUser) -> list[FileAssetRead]:
+    files = await FileService(session).list_files(current_user)
+    return [FileAssetRead.model_validate(item) for item in files]
+
+
+@router.post("", response_model=FileAssetRead, status_code=201)
+async def upload_file(
+    session: DbSession,
+    current_user: CurrentUser,
+    upload: Annotated[UploadFile, File()],
+) -> FileAssetRead:
+    file_asset = await FileService(session).upload(current_user, upload)
+    return FileAssetRead.model_validate(file_asset)

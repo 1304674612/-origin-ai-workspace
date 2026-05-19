@@ -1,0 +1,29 @@
+{
+  "name": "origin-ai-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A modern self-hosted AI workspace for developers, students, NAS users, and personal workflows.",
+  "license": "MIT",
+  "packageManager": "npm@11.12.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @origin/web",
+    "dev:web": "npm run dev --workspace @origin/web",
+    "dev:api": "sh -c 'if [ -x apps/api/.venv/bin/python ]; then exec apps/api/.venv/bin/python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir apps/api; else echo \"Create apps/api/.venv first: python3 -m venv apps/api/.venv && apps/api/.venv/bin/pip install -e \\\"apps/api[dev]\\\"\"; exit 1; fi'",
+    "build": "npm run build --workspace @origin/web",
+    "lint": "npm run lint --workspace @origin/web",
+    "typecheck": "npm run typecheck --workspace @origin/web",
+    "format": "prettier --write .",
+    "api:migrate": "sh -c 'if [ -x apps/api/.venv/bin/alembic ]; then exec apps/api/.venv/bin/alembic -c apps/api/alembic.ini upgrade head; else echo \"Create apps/api/.venv first: python3 -m venv apps/api/.venv && apps/api/.venv/bin/pip install -e \\\"apps/api[dev]\\\"\"; exit 1; fi'"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3"
+  },
+  "engines": {
+    "node": ">=20.18.0",
+    "npm": ">=10.0.0"
+  }
+}
