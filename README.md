@@ -24,9 +24,11 @@ A lightweight, open-source AI workspace you run on your own machine. Chat with m
 ## Screenshots
 
 <p align="center">
-  <img src="docs/assets/landing-hero.png" alt="Landing hero" width="32%">
-  <img src="docs/assets/landing-deploy.png" alt="Deployment section" width="32%">
-  <img src="docs/assets/login.png" alt="Login page" width="32%">
+  <img src="docs/assets/landing-hero.png" alt="Landing hero" width="48%">
+  <img src="docs/assets/landing-deploy.png" alt="Deployment section" width="48%">
+  <br>
+  <img src="docs/assets/login.png" alt="Login page" width="48%">
+  <img src="docs/assets/blog.png" alt="Blog page" width="48%">
 </p>
 
 ---
