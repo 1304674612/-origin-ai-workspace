@@ -37,6 +37,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-origin}:${POSTGRES_PASSWORD:-origin_password}@postgres:5432/${POSTGRES_DB:-origin_ai}
       REDIS_URL: redis://redis:6379/0
       UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000","http://localhost:8080"]'
     volumes:
       - uploads_data:/app/uploads
     depends_on:

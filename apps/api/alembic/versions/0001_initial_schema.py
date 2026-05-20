@@ -17,8 +17,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    message_role = postgresql.ENUM("system", "user", "assistant", "tool", name="messagerole")
-    file_status = postgresql.ENUM("uploaded", "parsing", "parsed", "failed", name="filestatus")
+    message_role = postgresql.ENUM("system", "user", "assistant", "tool", name="messagerole", create_type=False)
+    file_status = postgresql.ENUM("uploaded", "parsing", "parsed", "failed", name="filestatus", create_type=False)
     message_role.create(op.get_bind(), checkfirst=True)
     file_status.create(op.get_bind(), checkfirst=True)
 
