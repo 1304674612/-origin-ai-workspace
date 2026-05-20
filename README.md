@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
   <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
@@ -125,9 +125,10 @@ docs/           Architecture & deployment docs
 
 | Version | Focus |
 |---------|-------|
-| **v0.1** | AI Chat, JWT auth, Dashboard, Docker deploy |
-| **v0.2** | Local knowledge base, vector retrieval, document parsing |
-| **v0.3** | AI Agent, Workflow builder, automation |
+| **v0.1** | AI Chat, JWT auth, Dashboard, Docker deploy ✅ |
+| **v0.2** | Conversation management, settings, Markdown, PWA, multi-model polish ✅ |
+| **v0.3** | Local knowledge base, vector retrieval, document parsing |
+| **v0.4** | AI Agent, Workflow builder, automation |
 | **v1.0** | Plugin ecosystem, MCP support, multi-user, mobile UI |
 
 ---

@@ -13,7 +13,7 @@ settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.1.0",
+    version="0.2.0",
     description="Self-hosted AI workspace API",
     openapi_url=f"{settings.api_v1_prefix}/openapi.json",
 )
@@ -32,4 +32,4 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    return HealthResponse(status="ok", app=settings.app_name, version="0.1.0")
+    return HealthResponse(status="ok", app=settings.app_name, version="0.2.0")

@@ -105,7 +105,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </p>
       </div>
 
-      <p className="mt-16 text-xs text-zinc-600">Self-hosted AI workspace · v0.1</p>
+      <p className="mt-16 text-xs text-zinc-600">Self-hosted AI workspace · v0.2</p>
     </div>
   );
 }
