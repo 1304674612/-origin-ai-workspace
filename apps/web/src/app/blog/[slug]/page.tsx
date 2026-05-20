@@ -1,12 +1,10 @@
 import Link from "next/link";
-import ReactMarkdown from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
-import remarkGfm from "remark-gfm";
 import { notFound } from "next/navigation";
 import { Badge } from "@origin/ui/components/badge";
 import { Button } from "@origin/ui/components/button";
 import { AppShell } from "@/components/layout/app-shell";
 import { ReadingProgress } from "@/components/blog/reading-progress";
+import { MarkdownContent } from "@/components/chat/markdown-content";
 import { getBlogPost, getBlogPosts } from "@/lib/blog";
 
 export function generateStaticParams() {
@@ -42,10 +40,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             ))}
           </div>
         </div>
-        <div className="prose prose-invert mt-10 max-w-none prose-headings:text-white prose-a:text-cyan-200 prose-pre:rounded-lg">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-            {post.content}
-          </ReactMarkdown>
+        <div className="mt-10">
+          <MarkdownContent content={post.content} />
         </div>
       </article>
     </AppShell>

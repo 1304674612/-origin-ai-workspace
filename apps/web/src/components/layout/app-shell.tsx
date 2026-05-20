@@ -63,13 +63,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-zinc-950/75 px-4 py-3 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-zinc-950/80 px-3 py-2 backdrop-blur-xl lg:hidden">
         <div className="flex items-center justify-between">
-          <Link href="/dashboard" className="font-semibold text-white">ORIGIN AI</Link>
-          <div className="flex gap-1">
-            {navItems.slice(0, 3).map((item) => (
-              <Link key={item.href} href={item.href} className="rounded-md p-2 text-zinc-300 hover:bg-white/10">
-                <item.icon className="h-4 w-4" />
+          <Link href="/dashboard" className="flex items-center gap-1.5 text-sm font-semibold text-white">
+            <Sparkles className="h-4 w-4 text-cyan-200" />
+            ORIGIN
+          </Link>
+          <div className="flex gap-0.5">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "rounded-lg px-2.5 py-2 text-xs text-zinc-400 transition",
+                  pathname.startsWith(item.href) && "bg-white/10 text-white"
+                )}
+              >
+                <item.icon className="mx-auto h-4 w-4" />
+                <span className="mt-0.5 block">{item.label}</span>
               </Link>
             ))}
           </div>

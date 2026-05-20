@@ -69,6 +69,10 @@ export const api = {
   conversations: (q?: string) =>
     request<ConversationListItem[]>(`/api/v1/chat/conversations${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   conversation: (id: string) => request<Conversation>(`/api/v1/chat/conversations/${id}`),
+  deleteConversation: (id: string) =>
+    request<void>(`/api/v1/chat/conversations/${id}`, { method: "DELETE" }),
+  updateConversation: (id: string, payload: { title?: string }) =>
+    request<Conversation>(`/api/v1/chat/conversations/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   files: () => request<FileAsset[]>("/api/v1/files"),
   uploadFile: (file: File) => {
     const form = new FormData();

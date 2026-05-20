@@ -59,6 +59,18 @@ async def update_conversation(
     return ConversationRead.model_validate(conversation)
 
 
+@router.delete("/conversations/{conversation_id}", status_code=204)
+async def delete_conversation(
+    conversation_id: UUID,
+    session: DbSession,
+    current_user: CurrentUser,
+) -> None:
+    service = ChatService(session)
+    conversation = await service.get_conversation(current_user, conversation_id)
+    await session.delete(conversation)
+    await session.commit()
+
+
 @router.post("/stream")
 async def stream_chat(
     payload: ChatRequest,

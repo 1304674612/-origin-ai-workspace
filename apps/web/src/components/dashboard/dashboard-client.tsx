@@ -7,6 +7,7 @@ import { Badge } from "@origin/ui/components/badge";
 import { Button } from "@origin/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@origin/ui/components/card";
 import { api, type DashboardStats } from "@/lib/api";
+import { useToast } from "@/lib/toast";
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProtectedPage } from "@/components/layout/protected-page";
@@ -25,6 +26,7 @@ export function DashboardClient() {
   const [stats, setStats] = useState<DashboardStats>(fallbackStats);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   async function load() {
     setLoading(true);
@@ -32,7 +34,9 @@ export function DashboardClient() {
     try {
       setStats(await api.dashboard());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      const msg = err instanceof Error ? err.message : "Failed to load dashboard";
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setLoading(false);
     }
