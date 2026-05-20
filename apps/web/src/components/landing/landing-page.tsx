@@ -65,7 +65,7 @@ export function LandingPage() {
                 </Link>
               </Button>
               <Button asChild variant="secondary" size="lg">
-                <a href="https://github.com/origin-ai/origin-ai-workspace" target="_blank" rel="noreferrer">
+                <a href="https://github.com/1304674612/-origin-ai-workspace" target="_blank" rel="noreferrer">
                   <Github className="h-4 w-4" />
                   GitHub
                 </a>
