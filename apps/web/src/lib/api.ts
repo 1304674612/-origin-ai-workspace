@@ -23,6 +23,16 @@ export type DashboardStats = {
   usage_series: Array<{ label: string; tokens: number; latency_ms: number }>;
 };
 
+export type UpdateCheck = {
+  update_available: boolean;
+  current_version: string;
+  latest_version?: string;
+  release_name?: string;
+  release_url?: string;
+  release_notes?: string;
+  error?: string;
+};
+
 export function getToken() {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem("origin_token");
@@ -69,6 +79,7 @@ export const api = {
   changePassword: (current_password: string, new_password: string) =>
     request<void>("/api/v1/users/me/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) }),
   dashboard: () => request<DashboardStats>("/api/v1/dashboard/stats"),
+  updateCheck: () => request<UpdateCheck>("/api/v1/system/update-check"),
   models: () => request<ModelInfo[]>("/api/v1/providers/models"),
   conversations: (q?: string) =>
     request<ConversationListItem[]>(`/api/v1/chat/conversations${q ? `?q=${encodeURIComponent(q)}` : ""}`),
