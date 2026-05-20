@@ -1,16 +1,15 @@
-<div align="center">
-  <h1>🌐 ORIGIN AI Workspace</h1>
-  <p><strong>Self-hosted AI workbench for developers, students, and NAS users.</strong></p>
+<p align="center">
+  <img src="docs/assets/origin-banner.svg" alt="ORIGIN AI Workspace" width="100%">
+</p>
 
-  <p>
-    <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
-    <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
-    <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
-    <img src="https://img.shields.io/badge/FastAPI-0.115-teal" alt="FastAPI">
-    <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python">
-  </p>
-</div>
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
+  <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
+  <img src="https://img.shields.io/badge/FastAPI-0.115-teal" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python">
+</p>
 
 ---
 
