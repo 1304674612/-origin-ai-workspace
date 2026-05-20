@@ -17,6 +17,12 @@ class UserRead(ORMModel):
 
 
 class UserUpdate(ORMModel):
+    username: str | None = None
     full_name: str | None = None
     avatar_url: str | None = None
     preferences: dict | None = None
+
+
+class PasswordChange(ORMModel):
+    current_password: str
+    new_password: str

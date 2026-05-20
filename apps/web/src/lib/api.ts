@@ -64,6 +64,10 @@ export const api = {
   register: (payload: { email: string; username: string; password: string; full_name?: string }) =>
     request<AuthResponse>("/api/v1/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   me: () => request<User>("/api/v1/users/me"),
+  updateMe: (payload: { username?: string; full_name?: string }) =>
+    request<User>("/api/v1/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
+  changePassword: (current_password: string, new_password: string) =>
+    request<void>("/api/v1/users/me/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) }),
   dashboard: () => request<DashboardStats>("/api/v1/dashboard/stats"),
   models: () => request<ModelInfo[]>("/api/v1/providers/models"),
   conversations: (q?: string) =>

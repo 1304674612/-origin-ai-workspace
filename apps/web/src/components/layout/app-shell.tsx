@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Files, LayoutDashboard, LogOut, MessageSquareText, Newspaper, Sparkles } from "lucide-react";
+import { BarChart3, Files, LayoutDashboard, LogOut, MessageSquareText, Newspaper, Settings, Sparkles } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { cn } from "@origin/ui/lib/utils";
 import { clearSession } from "@/lib/api";
@@ -11,7 +11,8 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/chat", label: "Chat", icon: MessageSquareText },
   { href: "/files", label: "Files", icon: Files },
-  { href: "/blog", label: "Blog", icon: Newspaper }
+  { href: "/blog", label: "Blog", icon: Newspaper },
+  { href: "/settings", label: "Settings", icon: Settings }
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
