@@ -10,10 +10,10 @@ import { DashboardPreview } from "./dashboard-preview";
 import { ParticleField } from "./particle-field";
 
 const features = [
-  { icon: Bot, title: "AI Chat", text: "Streaming chat, Markdown, history, model controls, and provider switching." },
-  { icon: Network, title: "RAG Core", text: "Chunking, document indexes, embeddings and vector store abstractions." },
-  { icon: Boxes, title: "Plugins", text: "Designed for agents, workflows, MCP, and user-owned extensions." },
-  { icon: Server, title: "NAS Ready", text: "Docker Compose, persistent data, reverse proxy, and local-first deployment." }
+  { icon: Bot, title: "AI Chat", text: "Streaming responses, Markdown + code highlighting, multi-model switching, conversation history with rename and delete." },
+  { icon: Network, title: "File intake", text: "Upload PDF, TXT, Markdown, DOCX, and images. Text files auto-parse with extraction preview." },
+  { icon: Boxes, title: "Settings & PWA", text: "Profile management, password change, installable as a native app on mobile and desktop." },
+  { icon: Server, title: "One-command deploy", text: "Docker Compose with PostgreSQL, Redis, Nginx reverse proxy. Runs on NAS, VPS, or local." }
 ];
 
 export function LandingPage() {
@@ -102,9 +102,9 @@ export function LandingPage() {
             <Badge variant="secondary">Docker first</Badge>
             <h2 className="mt-5 text-3xl font-semibold text-white md:text-5xl">Built for local ownership.</h2>
             <p className="mt-5 text-base leading-8 text-zinc-400">
-              ORIGIN is designed around a production-style FastAPI backend, PostgreSQL, Redis, and a
-              Next.js frontend. It keeps the first version compact while leaving clean extension points for
-              RAG engines, agents, workflows, and plugins.
+              ORIGIN runs on a FastAPI backend with PostgreSQL, Redis, and a Next.js frontend.
+              v0.2 includes AI chat, file management, dashboard telemetry, settings, PWA support,
+              and automatic update checking.
             </p>
             <div className="mt-8 flex gap-3">
               <Button asChild>

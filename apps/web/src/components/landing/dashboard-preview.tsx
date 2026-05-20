@@ -20,7 +20,30 @@ export function DashboardPreview() {
     api.dashboard().then(setStats).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (!getToken()) return null;
+  if (!getToken()) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="glass-panel mx-auto w-full max-w-5xl rounded-lg p-12 text-center"
+      >
+        <Sparkles className="mx-auto h-8 w-8 text-cyan-300/40" />
+        <h3 className="mt-4 text-lg font-medium text-white">Your workspace is waiting</h3>
+        <p className="mt-2 text-sm text-zinc-400">
+          Sign in to see real-time stats from your personal AI workspace.
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Button asChild size="sm">
+            <Link href="/auth/login">Sign in</Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/auth/register">Create account</Link>
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (loading) {
     return (
