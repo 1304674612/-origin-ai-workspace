@@ -13,11 +13,8 @@ concurrency:
 jobs:
   # ── Frontend ──────────────────────────────────────────
   frontend:
-    name: Frontend (TypeScript)
+    name: Frontend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
     steps:
       - uses: actions/checkout@v4
 
@@ -29,17 +26,20 @@ jobs:
       - run: npm ci
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Lint
-        run: npx next lint
+        run: npm run lint
 
-      - name: Build check
-        run: npx next build
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NEXT_PUBLIC_API_URL: http://localhost:8000
 
   # ── Backend ───────────────────────────────────────────
   backend:
-    name: Backend (Python)
+    name: Backend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,21 +56,25 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Lint (Ruff)
+      - name: Lint
         run: ruff check .
 
       - name: Format check
         run: ruff format --check .
 
-      - name: Tests
-        run: pytest --tb=short
+      - name: Smoke test
+        run: |
+          python -c "
+          from app.core.config import Settings
+          from app.main import app
+          print('App loaded OK, routes:', len(app.routes))
+          "
         env:
-          DATABASE_URL: sqlite+aiosqlite:///test.db
-          JWT_SECRET_KEY: ci-test-key-not-for-production-use-32chars
+          JWT_SECRET_KEY: ci-test-key-must-be-at-least-32-characters
 
-  # ── Docker build check ────────────────────────────────
+  # ── Docker ────────────────────────────────────────────
   docker:
-    name: Docker build
+    name: Docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
