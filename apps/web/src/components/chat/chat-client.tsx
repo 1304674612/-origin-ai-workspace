@@ -1,9 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import rehypeHighlight from "rehype-highlight";
-import remarkGfm from "remark-gfm";
 import { Copy, Loader2, Plus, RefreshCw, Search, Send, Square, WandSparkles } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { Card } from "@origin/ui/components/card";
@@ -334,11 +331,7 @@ function MessageBubble({ message }: { message: LocalMessage }) {
             Thinking...
           </div>
         ) : (
-          <div className="prose prose-invert max-w-none prose-pre:bg-zinc-950">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-              {message.content}
-            </ReactMarkdown>
-          </div>
+          <p style={{whiteSpace:"pre-wrap",color:"#e2e8f0",fontSize:14}}>{message.content}</p>
         )}
       </div>
     </div>
