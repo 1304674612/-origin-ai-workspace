@@ -83,11 +83,13 @@ export function LandingPage() {
           {features.map((feature) => (
             <motion.div
               key={feature.title}
-              whileHover={{ y: -4 }}
-              className="rounded-lg border border-white/10 bg-white/[0.04] p-6 backdrop-blur"
+              whileHover={{ y: -4, scale: 1.02 }}
+              className="group rounded-xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur transition hover:border-cyan-300/20 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-cyan-300/5"
             >
-              <feature.icon className="h-6 w-6 text-cyan-200" />
-              <h3 className="mt-5 text-lg font-semibold text-white">{feature.title}</h3>
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-300/10 ring-1 ring-cyan-300/20 transition group-hover:bg-cyan-300/20">
+                <feature.icon className="h-5 w-5 text-cyan-200" />
+              </span>
+              <h3 className="mt-5 text-lg font-semibold text-white transition group-hover:text-cyan-100">{feature.title}</h3>
               <p className="mt-3 text-sm leading-6 text-zinc-400">{feature.text}</p>
             </motion.div>
           ))}

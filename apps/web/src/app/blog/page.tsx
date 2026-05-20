@@ -18,20 +18,20 @@ export default function BlogPage() {
         />
         <div className="mt-8 grid gap-5 lg:grid-cols-2">
           {posts.map((post) => (
-            <Link key={post.slug} href={`/blog/${post.slug}`}>
-              <Card className="h-full transition hover:border-cyan-300/30 hover:bg-white/[0.055]">
+            <Link key={post.slug} href={`/blog/${post.slug}`} className="group">
+              <Card className="h-full transition hover:border-cyan-300/30 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-cyan-300/5">
                 <CardHeader>
                   <div className="flex items-center justify-between gap-4">
-                    <Badge variant="secondary">{post.category}</Badge>
-                    <ArrowUpRight className="h-4 w-4 text-zinc-500" />
+                    <Badge variant="secondary" className="transition group-hover:bg-cyan-300/10 group-hover:text-cyan-200">{post.category}</Badge>
+                    <ArrowUpRight className="h-4 w-4 text-zinc-500 transition group-hover:text-cyan-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </div>
-                  <CardTitle className="text-xl">{post.title}</CardTitle>
+                  <CardTitle className="text-xl transition group-hover:text-cyan-100">{post.title}</CardTitle>
                   <CardDescription>{post.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {post.tags.map((tag) => (
-                      <Badge key={tag}>{tag}</Badge>
+                      <Badge key={tag} variant="default" className="text-[10px]">{tag}</Badge>
                     ))}
                   </div>
                   <p className="mt-5 text-sm text-zinc-500">

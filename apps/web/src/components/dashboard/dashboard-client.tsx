@@ -73,13 +73,15 @@ export function DashboardClient() {
 
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {cards.map((card) => (
-              <Card key={card.label}>
+              <Card key={card.label} className="transition hover:border-white/20 hover:bg-white/[0.06]">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardDescription>{card.label}</CardDescription>
-                    <card.icon className={`h-5 w-5 ${card.tone}`} />
+                    <span className={`flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/10`}>
+                      <card.icon className={`h-4 w-4 ${card.tone}`} />
+                    </span>
                   </div>
-                  <CardTitle className="text-3xl">{card.value.toLocaleString()}</CardTitle>
+                  <CardTitle className="text-3xl tabular-nums">{card.value.toLocaleString()}</CardTitle>
                 </CardHeader>
               </Card>
             ))}

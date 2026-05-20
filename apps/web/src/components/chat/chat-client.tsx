@@ -437,7 +437,12 @@ export function ChatClient() {
                         <Button
                           type="submit"
                           size="icon"
-                          className="h-8 w-8"
+                          className={cn(
+                            "h-8 w-8 transition-all",
+                            input.trim()
+                              ? "bg-cyan-500 text-zinc-950 hover:bg-cyan-400"
+                              : "opacity-40"
+                          )}
                           disabled={!input.trim()}
                         >
                           <Send className="h-3.5 w-3.5" />
