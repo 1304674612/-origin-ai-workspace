@@ -499,7 +499,7 @@ export function ChatClient() {
   );
 }
 
-const MessageBubble = memo(function MessageBubble({ message }: { message: LocalMessage }) {
+function MessageBubble({ message }: { message: LocalMessage }) {
   const isUser = message.role === "user";
   return (
     <div className={cn("flex gap-3 py-2", isUser ? "flex-row-reverse" : "flex-row")}>
@@ -544,4 +544,4 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: LocalM
       </div>
     </div>
   );
-});
+}

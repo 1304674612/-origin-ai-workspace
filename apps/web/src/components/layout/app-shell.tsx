@@ -6,7 +6,6 @@ import { BarChart3, Files, LayoutDashboard, LogOut, MessageSquareText, Newspaper
 import { Button } from "@origin/ui/components/button";
 import { cn } from "@origin/ui/lib/utils";
 import { clearSession } from "@/lib/api";
-import { UpdateBanner } from "@/components/layout/update-banner";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -89,10 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="lg:pl-72">
-        <UpdateBanner />
-        {children}
-      </main>
+      <main className="lg:pl-72">{children}</main>
     </div>
   );
 }
