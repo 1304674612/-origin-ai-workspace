@@ -18,13 +18,20 @@ export function ProtectedPage({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, []);
 
-  if (!mounted || !ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050506] text-sm text-zinc-400">
+  const showLoader = !mounted || !ready;
+
+  return (
+    <>
+      <div
+        aria-hidden={!showLoader}
+        style={{ display: showLoader ? undefined : "none" }}
+        className="flex min-h-screen items-center justify-center bg-[#050506] text-sm text-zinc-400"
+      >
         Preparing workspace...
       </div>
-    );
-  }
-
-  return <div key="protected-content">{children}</div>;
+      <div style={{ display: showLoader ? "none" : undefined }}>
+        {children}
+      </div>
+    </>
+  );
 }
