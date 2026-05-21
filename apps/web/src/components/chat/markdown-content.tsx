@@ -20,9 +20,10 @@ export function MarkdownContent({ content }: { content: string }) {
 
   return (
     <div
-      className="prose prose-invert max-w-none prose-pre:bg-zinc-950 prose-pre:border prose-pre:border-white/10 prose-code:text-cyan-200 prose-a:text-cyan-300"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+      className="text-sm leading-relaxed text-zinc-200 whitespace-pre-wrap"
+    >
+      {content}
+    </div>
   );
 }
 
