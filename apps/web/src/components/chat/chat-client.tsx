@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Pencil, Plus, RefreshCw, Search, Send, Square, Trash2, User, Sparkles, MessageSquareText, Globe } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { Card } from "@origin/ui/components/card";
@@ -108,11 +108,11 @@ export function ChatClient() {
     void boot();
   }, []);
 
-  function newConversation() {
+  const newConversation = useCallback(() => {
     setConversationId(null);
     setMessages([]);
     setInput("");
-  }
+  }, []);
 
   async function deleteConversation(id: string, event: React.MouseEvent) {
     event.stopPropagation();
@@ -147,10 +147,10 @@ export function ChatClient() {
     setRenaming(null);
   }
 
-  function stopGeneration() {
+  const stopGeneration = useCallback(() => {
     abortRef.current?.abort();
     setLoading(false);
-  }
+  }, []);
 
   async function submit(messageText: string = input) {
     const trimmed = messageText.trim();
@@ -228,15 +228,15 @@ export function ChatClient() {
     }
   }
 
-  async function regenerate() {
+  const regenerate = useCallback(async () => {
     const lastUser = [...messages].reverse().find((message) => message.role === "user");
     if (lastUser) await submit(lastUser.content);
-  }
+  }, [messages]);
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  const onSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void submit();
-  }
+  }, [input, loading, provider, model, systemPrompt, temperature, maxTokens, conversationId]);
 
   return (
     <ProtectedPage>
@@ -499,7 +499,7 @@ export function ChatClient() {
   );
 }
 
-function MessageBubble({ message }: { message: LocalMessage }) {
+const MessageBubble = memo(function MessageBubble({ message }: { message: LocalMessage }) {
   const isUser = message.role === "user";
   return (
     <div className={cn("flex gap-3 py-2", isUser ? "flex-row-reverse" : "flex-row")}>
@@ -544,4 +544,4 @@ function MessageBubble({ message }: { message: LocalMessage }) {
       </div>
     </div>
   );
-}
+});
