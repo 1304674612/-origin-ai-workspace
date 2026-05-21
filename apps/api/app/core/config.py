@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     current_version: str = "v0.2.0"
 
     jwt_secret_key: str = Field(default="")
+    app_encryption_key: str = Field(default="")
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60 * 24
 
@@ -95,6 +96,13 @@ def get_settings() -> Settings:
             "Generate one with: openssl rand -hex 32"
         )
     settings.jwt_secret_key = jwt_secret
+    encryption_key = settings.app_encryption_key.strip()
+    if not encryption_key or len(encryption_key) < 32:
+        raise ValueError(
+            "APP_ENCRYPTION_KEY is required and must be at least 32 characters long. "
+            "Generate one with: openssl rand -hex 32"
+        )
+    settings.app_encryption_key = encryption_key
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     _warn_if_default_in_production(settings)
     return settings

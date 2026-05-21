@@ -1,3 +1,17 @@
+"""
+DEVELOPMENT FALLBACK ONLY — NOT FOR PRODUCTION USE.
+
+This provider uses SHA-256 hashing with normalization to produce deterministic
+but NON-SEMANTIC embedding vectors. It does NOT capture textual meaning or
+enable true semantic similarity search.
+
+For production RAG, use a real embedding provider:
+  - OpenAI embeddings (openai.py)
+  - BGE / sentence-transformers
+  - Jina embeddings API
+  - Ollama embeddings
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -7,6 +21,8 @@ from app.services.rag.embeddings.base import EmbeddingProvider
 
 
 class LocalHashEmbeddingProvider(EmbeddingProvider):
+    """Development-only fallback. Produces deterministic but non-semantic vectors."""
+
     name = "local"
     model_name = "hash-embedding"
     dimensions = 256

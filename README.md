@@ -33,6 +33,7 @@ ORIGIN AI Workspace is a lightweight self-hosted AI workspace for developers, st
 | Dashboard | Workspace counters, provider readiness cards, usage chart surface |
 | Files | Upload PDF, TXT, Markdown, DOCX, and images. TXT/Markdown/DOCX text extraction is implemented; PDF extraction and image OCR are planned adapters. |
 | Knowledge | AI-generated Markdown notes and a RAG-ready document/chunk schema |
+| RAG Pipeline | Document chunking, pgvector vector store, OpenAI embeddings (production). A local hash-based embedding provider is included for **development only** — it is NOT semantic and should be replaced with OpenAI, BGE, Jina, or Ollama embeddings for real retrieval. |
 | Blog | Markdown blog engine with dark-mode reading pages |
 | Deploy | Docker Compose with PostgreSQL, Redis, Nginx, uploads volume, and health checks |
 

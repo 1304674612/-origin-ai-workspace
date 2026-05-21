@@ -377,7 +377,7 @@ export function ChatClient() {
               </div>
             </header>
 
-            {/* Messages */}
+            {/* Messages — both containers always in DOM, toggled by visibility */}
             <div className="flex-1 overflow-y-auto">
               {error ? (
                 <div className="mx-auto mt-4 max-w-3xl rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">
@@ -385,41 +385,38 @@ export function ChatClient() {
                 </div>
               ) : null}
 
-              {messages.length === 0 ? (
-                /* Empty state */
-                <div className="flex h-full flex-col items-center justify-center px-4 pb-32">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/10">
-                    <Sparkles className="h-8 w-8 text-cyan-300" />
-                  </div>
-                  <h2 className="mt-6 text-xl font-semibold text-white">What can I help with?</h2>
-                  <p className="mt-2 max-w-md text-center text-sm text-zinc-400">
-                    Ask a question, brainstorm ideas, analyze data, or request code. ORIGIN AI streams responses with full Markdown support.
-                  </p>
-                  <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                    {[
-                      { icon: Globe, text: "Explain how Docker Compose networking works" },
-                      { icon: MessageSquareText, text: "Write a FastAPI endpoint with async streaming" },
-                    ].map((suggestion) => (
-                      <button
-                        key={suggestion.text}
-                        onClick={() => {
-                          setInput(suggestion.text);
-                        }}
-                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-left text-sm text-zinc-400 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-                      >
-                        <suggestion.icon className="h-4 w-4 shrink-0 text-zinc-500" />
-                        <span className="line-clamp-2">{suggestion.text}</span>
-                      </button>
-                    ))}
-                  </div>
+              <div style={{ display: messages.length === 0 ? undefined : "none" }} className="flex h-full flex-col items-center justify-center px-4 pb-32">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-white/10">
+                  <Sparkles className="h-8 w-8 text-cyan-300" />
                 </div>
-              ) : (
-                <div className="mx-auto max-w-3xl space-y-1 px-4 py-6">
-                  {messages.map((message) => (
-                    <MessageBubble key={message.id} message={message} />
+                <h2 className="mt-6 text-xl font-semibold text-white">What can I help with?</h2>
+                <p className="mt-2 max-w-md text-center text-sm text-zinc-400">
+                  Ask a question, brainstorm ideas, analyze data, or request code. ORIGIN AI streams responses with full Markdown support.
+                </p>
+                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                  {[
+                    { icon: Globe, text: "Explain how Docker Compose networking works" },
+                    { icon: MessageSquareText, text: "Write a FastAPI endpoint with async streaming" },
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion.text}
+                      onClick={() => {
+                        setInput(suggestion.text);
+                      }}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-left text-sm text-zinc-400 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <suggestion.icon className="h-4 w-4 shrink-0 text-zinc-500" />
+                      <span className="line-clamp-2">{suggestion.text}</span>
+                    </button>
                   ))}
                 </div>
-              )}
+              </div>
+
+              <div style={{ display: messages.length > 0 ? undefined : "none" }} className="mx-auto max-w-3xl space-y-1 px-4 py-6">
+                {messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} />
+                ))}
+              </div>
             </div>
 
             {/* Input area */}
@@ -547,15 +544,14 @@ function MessageBubble({ message }: { message: LocalMessage }) {
               : "rounded-tl-md bg-zinc-800/60 text-zinc-200"
           )}
         >
-          {message.pending && !message.content ? (
-            <div className="flex items-center gap-1.5 py-1">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:300ms]" />
-            </div>
-          ) : (
+          <div style={{ display: message.pending && !message.content ? undefined : "none" }} aria-hidden={!(message.pending && !message.content)} className="flex items-center gap-1.5 py-1">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:0ms]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:150ms]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:300ms]" />
+          </div>
+          <div style={{ display: message.pending && !message.content ? "none" : undefined }}>
             <MarkdownContent content={message.content} />
-          )}
+          </div>
         </div>
       </div>
     </div>

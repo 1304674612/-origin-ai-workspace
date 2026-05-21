@@ -7,7 +7,7 @@ from app.core.config import get_settings
 
 
 def _fernet() -> Fernet:
-    secret = get_settings().jwt_secret_key.encode("utf-8")
+    secret = get_settings().app_encryption_key.encode("utf-8")
     key = urlsafe_b64encode(sha256(secret).digest())
     return Fernet(key)
 
