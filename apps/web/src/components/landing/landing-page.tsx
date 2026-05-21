@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Bot, Boxes, Github, Layers3, LockKeyhole, Network, Rocket, Server } from "lucide-react";
+import { ArrowRight, BookOpen, Bot, Brain, Github, Layers3, LockKeyhole, Rocket, Server } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { Badge } from "@origin/ui/components/badge";
 
@@ -10,10 +10,10 @@ import { DashboardPreview } from "./dashboard-preview";
 import { ParticleField } from "./particle-field";
 
 const features = [
-  { icon: Bot, title: "AI Chat", text: "Streaming responses, Markdown + code highlighting, multi-model switching, conversation history with rename and delete." },
-  { icon: Network, title: "File intake", text: "Upload PDF, TXT, Markdown, DOCX, and images. Text files auto-parse with extraction preview." },
-  { icon: Boxes, title: "Settings & PWA", text: "Profile management, password change, installable as a native app on mobile and desktop." },
-  { icon: Server, title: "One-command deploy", text: "Docker Compose with PostgreSQL, Redis, Nginx reverse proxy. Runs on NAS, VPS, or local." }
+  { icon: Bot, title: "AI Chat", text: "Streaming Markdown responses, code highlighting, multi-model support (OpenAI, DeepSeek, Qwen), conversation management with rename and delete." },
+  { icon: Brain, title: "RAG Pipeline", text: "Document chunking, local and OpenAI embeddings, pgvector similarity search. Build your own knowledge base from uploaded files." },
+  { icon: BookOpen, title: "Knowledge Base", text: "AI-generated research articles, saved documents for later reference, one-click content generation from any topic." },
+  { icon: Server, title: "One-command Deploy", text: "Docker Compose with PostgreSQL, Redis, Nginx. Same-origin API proxy. Runs on NAS, VPS, or local machine." }
 ];
 
 export function LandingPage() {
@@ -55,8 +55,8 @@ export function LandingPage() {
               ORIGIN AI Workspace
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
-              A lightweight, modern, NAS-friendly AI workbench for chat, files, knowledge bases, agents,
-              workflows, and personal automation.
+              A self-hosted AI workspace with streaming chat, RAG-powered knowledge retrieval,
+              local embeddings, and one-command Docker deployment. Your data, your keys, your machine.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="lg">
@@ -100,11 +100,12 @@ export function LandingPage() {
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[0.9fr_1.1fr] md:items-center">
           <div>
             <Badge variant="secondary">Docker first</Badge>
-            <h2 className="mt-5 text-3xl font-semibold text-white md:text-5xl">Built for local ownership.</h2>
+            <h2 className="mt-5 text-3xl font-semibold text-white md:text-5xl">Your machine. Your data.</h2>
             <p className="mt-5 text-base leading-8 text-zinc-400">
-              ORIGIN runs on a FastAPI backend with PostgreSQL, Redis, and a Next.js frontend.
-              v0.2 includes AI chat, file management, dashboard telemetry, settings, PWA support,
-              and automatic update checking.
+              ORIGIN is built with FastAPI + PostgreSQL + Redis on the backend, Next.js 15
+              on the frontend, all wired through Nginx. v0.2 ships with streaming AI chat,
+              RAG pipeline with local embeddings, knowledge base, file intake, dashboard
+              telemetry, PWA support, and automatic update checking against GitHub releases.
             </p>
             <div className="mt-8 flex gap-3">
               <Button asChild>
@@ -123,12 +124,11 @@ export function LandingPage() {
               One command deploy
             </div>
             <pre className="overflow-x-auto pt-5 text-sm leading-7 text-zinc-200">
-              <code>{`cp .env.example .env
+              <code>{`cp .env.docker.example .env
+openssl rand -hex 32  # set JWT_SECRET_KEY
 docker compose up -d --build
 
-# web     http://localhost:3000
-# api     http://localhost:8000
-# nginx   http://localhost:8080`}</code>
+# Open http://localhost:8080`}</code>
             </pre>
           </div>
         </div>
