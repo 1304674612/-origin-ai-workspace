@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import { BookOpen, Loader2, Plus, Sparkles, X } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { Input } from "@origin/ui/components/input";
@@ -81,23 +80,16 @@ export function DesktopPet() {
   return (
     <>
       {/* Floating mascot button */}
-      <motion.button
+      <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-white/10 shadow-2xl shadow-cyan-300/10 hover:ring-cyan-300/30"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        animate={{ y: [0, -4, 0] }}
-        transition={{ y: { repeat: Infinity, duration: 3, ease: "easeInOut" } }}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 ring-1 ring-white/10 shadow-2xl shadow-cyan-300/10 transition hover:scale-110 active:scale-95 hover:ring-cyan-300/30"
+        style={{ animation: "pet-float 3s ease-in-out infinite" }}
       >
         <div className="relative">
           <Sparkles className="h-6 w-6 text-cyan-300" />
-          <motion.span
-            className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-cyan-400"
-            animate={{ scale: [1, 1.3, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-          />
+          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-cyan-400" style={{ animation: "pet-pulse 2s ease-in-out infinite" }} />
         </div>
-      </motion.button>
+      </button>
 
       {/* Knowledge panel */}
       {open && (
