@@ -80,6 +80,14 @@ export const api = {
     request<void>("/api/v1/users/me/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) }),
   dashboard: () => request<DashboardStats>("/api/v1/dashboard/stats"),
   updateCheck: () => request<UpdateCheck>("/api/v1/system/update-check"),
+  knowledgeGenerate: (title: string) =>
+    request<{ content: string }>("/api/v1/knowledge/generate", { method: "POST", body: JSON.stringify({ title }) }),
+  knowledgeSave: (payload: { title: string; content: string }) =>
+    request<{ id: string }>("/api/v1/knowledge", { method: "POST", body: JSON.stringify(payload) }),
+  knowledgeList: () =>
+    request<Array<{ id: string; title: string; content: string; created_at: string }>>("/api/v1/knowledge"),
+  knowledgeGet: (id: string) =>
+    request<{ id: string; title: string; content: string; created_at: string }>(`/api/v1/knowledge/${id}`),
   models: () => request<ModelInfo[]>("/api/v1/providers/models"),
   conversations: (q?: string) =>
     request<ConversationListItem[]>(`/api/v1/chat/conversations${q ? `?q=${encodeURIComponent(q)}` : ""}`),

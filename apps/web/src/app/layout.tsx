@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ToastProvider } from "@/lib/toast";
+import { DesktopPet } from "@/components/layout/desktop-pet";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +20,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>{children}<DesktopPet /></ToastProvider>
       </body>
     </html>
   );
