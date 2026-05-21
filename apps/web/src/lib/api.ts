@@ -23,6 +23,17 @@ export type DashboardStats = {
   usage_series: Array<{ label: string; tokens: number; latency_ms: number }>;
 };
 
+export type DashboardSummary = {
+  conversations_count: number;
+  files_count: number;
+  blogs_count: number;
+  system_status: string;
+  recent_conversations: Array<{ id: string; title: string; created_at?: string | null }>;
+  recent_files: Array<{ id: string; title: string; created_at?: string | null }>;
+  recent_blogs: Array<{ id: string; title: string; created_at?: string | null }>;
+  services: Array<{ name: string; status: string }>;
+};
+
 export type UpdateCheck = {
   update_available: boolean;
   current_version: string;
@@ -83,17 +94,32 @@ async function parseResponseBody<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
     try {
-      return JSON.parse(text) as T;
+      return unwrapResponse<T>(JSON.parse(text));
     } catch {
       return text as T;
     }
   }
 
   try {
-    return JSON.parse(text) as T;
+    return unwrapResponse<T>(JSON.parse(text));
   } catch {
     return text as T;
   }
+}
+
+function unwrapResponse<T>(json: unknown): T {
+  if (json !== null && typeof json === "object") {
+    const obj = json as Record<string, unknown>;
+    // Handle { data: {...} } envelope
+    if ("data" in obj && obj.data !== null && typeof obj.data === "object") {
+      return obj.data as T;
+    }
+    // Handle { result: {...} } envelope
+    if ("result" in obj && obj.result !== null && typeof obj.result === "object") {
+      return obj.result as T;
+    }
+  }
+  return json as T;
 }
 
 export const api = {
@@ -107,6 +133,7 @@ export const api = {
   changePassword: (current_password: string, new_password: string) =>
     request<void>("/api/v1/users/me/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) }),
   dashboard: () => request<DashboardStats>("/api/v1/dashboard/stats"),
+  dashboardSummary: () => request<DashboardSummary>("/api/v1/dashboard/summary"),
   updateCheck: () => request<UpdateCheck>("/api/v1/system/update-check"),
   knowledgeGenerate: (title: string) =>
     request<{ content: string }>("/api/v1/knowledge/generate", { method: "POST", body: JSON.stringify({ title }) }),

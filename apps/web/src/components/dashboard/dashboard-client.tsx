@@ -1,153 +1,342 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Bot, Database, FileText, MessageSquareText, RefreshCw, Server } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import Link from "next/link";
+import {
+  Activity,
+  ArrowUpRight,
+  Bot,
+  FileText,
+  HardDrive,
+  MessageSquareText,
+  Newspaper,
+  RefreshCw,
+  Server,
+} from "lucide-react";
 import { Badge } from "@origin/ui/components/badge";
 import { Button } from "@origin/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@origin/ui/components/card";
-import { api, type DashboardStats } from "@/lib/api";
-import { useToast } from "@/lib/toast";
-import { AppShell } from "@/components/layout/app-shell";
-import { PageHeader } from "@/components/layout/page-header";
-import { ProtectedPage } from "@/components/layout/protected-page";
+import { cn } from "@origin/ui/lib/utils";
+import { api, type DashboardSummary } from "@/lib/api";
 
-const fallbackStats: DashboardStats = {
-  total_conversations: 0,
-  total_messages: 0,
-  total_files: 0,
-  indexed_documents: 0,
-  token_usage_today: 0,
-  provider_status: [],
-  usage_series: []
+const fallbackSummary: DashboardSummary = {
+  conversations_count: 0,
+  files_count: 0,
+  blogs_count: 0,
+  system_status: "ok",
+  recent_conversations: [],
+  recent_files: [],
+  recent_blogs: [],
+  services: [
+    { name: "FastAPI", status: "ok" },
+    { name: "PostgreSQL", status: "ok" },
+    { name: "Redis", status: "ok" },
+    { name: "RAG", status: "ok" },
+  ],
 };
 
-export function DashboardClient() {
-  const [stats, setStats] = useState<DashboardStats>(fallbackStats);
+type BlogItem = {
+  slug: string;
+  title: string;
+  date: string;
+};
+
+function asArray<T>(arr: unknown): T[] {
+  return Array.isArray(arr) ? (arr as T[]) : [];
+}
+
+function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-white/[0.06]", className)} />;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const ok = status === "ok";
+  return <Badge variant={ok ? "success" : "warning"}>{ok ? "正常" : "异常"}</Badge>;
+}
+
+export function DashboardClient({ initialBlogs }: { initialBlogs: BlogItem[] }) {
+  const [summary, setSummary] = useState<DashboardSummary>(fallbackSummary);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setStats(await api.dashboard());
+      const data = await api.dashboardSummary();
+      const services = asArray<DashboardSummary["services"][number]>(data?.services);
+      setSummary({
+        conversations_count: data?.conversations_count ?? 0,
+        files_count: data?.files_count ?? 0,
+        blogs_count: data?.blogs_count ?? 0,
+        system_status: data?.system_status ?? "ok",
+        recent_conversations: asArray<DashboardSummary["recent_conversations"][number]>(data?.recent_conversations),
+        recent_files: asArray<DashboardSummary["recent_files"][number]>(data?.recent_files),
+        recent_blogs: asArray<DashboardSummary["recent_blogs"][number]>(data?.recent_blogs),
+        services: services.length > 0 ? services : fallbackSummary.services,
+      });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load dashboard";
-      setError(msg);
-      toast(msg, "error");
+      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      setSummary(fallbackSummary);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const cards = [
-    { label: "Conversations", value: stats.total_conversations, icon: MessageSquareText, tone: "text-cyan-200" },
-    { label: "Messages", value: stats.total_messages, icon: Bot, tone: "text-emerald-200" },
-    { label: "Files", value: stats.total_files, icon: FileText, tone: "text-violet-200" },
-    { label: "Indexed Docs", value: stats.indexed_documents, icon: Database, tone: "text-amber-200" }
+  const blogsCount = summary.blogs_count || initialBlogs.length;
+  const recentBlogs = summary.recent_blogs.length > 0
+    ? summary.recent_blogs
+    : initialBlogs.slice(0, 5).map((p) => ({
+        id: p.slug,
+        title: p.title,
+        created_at: p.date,
+      }));
+
+  const statCards = [
+    {
+      label: "会话数量",
+      value: summary.conversations_count ?? 0,
+      icon: MessageSquareText,
+      tone: "text-cyan-200" as const,
+      href: "/chat",
+    },
+    {
+      label: "文件数量",
+      value: summary.files_count ?? 0,
+      icon: FileText,
+      tone: "text-violet-200" as const,
+      href: "/files",
+    },
+    {
+      label: "博客文章",
+      value: blogsCount,
+      icon: Newspaper,
+      tone: "text-emerald-200" as const,
+      href: "/blog",
+    },
+    {
+      label: "系统状态",
+      value: summary.system_status === "ok" ? "正常" : "异常",
+      icon: Activity,
+      tone: summary.system_status === "ok" ? ("text-emerald-200" as const) : ("text-amber-200" as const),
+      href: null as string | null,
+    },
   ];
 
+  const conversations = summary.recent_conversations;
+  const files = summary.recent_files;
+  const services = summary.services;
+
   return (
-    <ProtectedPage>
-      <AppShell>
-        <div className="min-h-screen px-5 py-8 md:px-10">
-          <PageHeader
-            eyebrow="Workspace"
-            title="Command center"
-            description="Monitor model health, chat activity, token usage, files, and the local RAG pipeline from one dense workspace surface."
-            action={
-              <Button variant="secondary" onClick={load} disabled={loading}>
-                <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-                Refresh
-              </Button>
-            }
-          />
+    <div className="min-h-screen px-5 py-8 md:px-10">
+      {/* Header */}
+      <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div>
+          <Badge variant="secondary">工作区</Badge>
+          <h1 className="mt-4 text-3xl font-semibold tracking-normal text-white md:text-4xl">仪表板</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
+            查看工作区运行状态、会话、文件与博客概览
+          </p>
+        </div>
+        <Button variant="secondary" onClick={load} disabled={loading}>
+          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          刷新
+        </Button>
+      </div>
 
-          {error ? <div className="mt-6 rounded-md border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">{error}</div> : null}
+      {/* Error banner */}
+      {error ? (
+        <div className="mt-6 rounded-md border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">
+          {error} — 已展示缓存数据
+        </div>
+      ) : null}
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {cards.map((card) => (
-              <Card key={card.label} className="transition hover:border-white/20 hover:bg-white/[0.06]">
-                <CardHeader className="pb-3">
+      {/* Stat cards */}
+      <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {statCards.map((card) => (
+          <Card key={card.label} className="transition hover:border-white/20 hover:bg-white/[0.06]">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardDescription>{card.label}</CardDescription>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/10">
+                  <card.icon className={cn("h-4 w-4", card.tone)} />
+                </span>
+              </div>
+              <CardTitle className="text-3xl tabular-nums">
+                {loading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : typeof card.value === "number" ? (
+                  card.value.toLocaleString()
+                ) : (
+                  card.value
+                )}
+              </CardTitle>
+            </CardHeader>
+            {card.href ? (
+              <CardContent className="pt-0">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-zinc-400 hover:text-white"
+                >
+                  <Link href={card.href}>
+                    查看详情 <ArrowUpRight className="ml-auto h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </CardContent>
+            ) : null}
+          </Card>
+        ))}
+      </div>
+
+      {/* Recent items grid */}
+      <div className="mt-6 grid gap-5 lg:grid-cols-3">
+        {/* Recent conversations */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquareText className="h-4 w-4 text-cyan-200" />
+              最近会话
+            </CardTitle>
+            <CardDescription>最近的对话记录</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)
+            ) : conversations.length > 0 ? (
+              conversations.slice(0, 5).map((item) => (
+                <Link
+                  key={String(item.id)}
+                  href={`/chat?id=${item.id}`}
+                  className="flex items-center gap-3 rounded-md border border-white/10 bg-white/[0.04] p-3 transition hover:border-cyan-300/30 hover:bg-white/[0.08]"
+                >
+                  <Bot className="h-4 w-4 shrink-0 text-cyan-200" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-300">
+                    {item.title || "未命名会话"}
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                </Link>
+              ))
+            ) : (
+              <div className="py-8 text-center text-sm text-zinc-500">
+                <MessageSquareText className="mx-auto mb-2 h-6 w-6 text-zinc-600" />
+                暂无数据
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent files */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4 text-violet-200" />
+              最近文件
+            </CardTitle>
+            <CardDescription>最近上传的文件</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)
+            ) : files.length > 0 ? (
+              files.slice(0, 5).map((item) => (
+                <Link
+                  key={String(item.id)}
+                  href="/files"
+                  className="flex items-center gap-3 rounded-md border border-white/10 bg-white/[0.04] p-3 transition hover:border-violet-300/30 hover:bg-white/[0.08]"
+                >
+                  <HardDrive className="h-4 w-4 shrink-0 text-violet-200" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-300">
+                    {item.title || "未命名文件"}
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                </Link>
+              ))
+            ) : (
+              <div className="py-8 text-center text-sm text-zinc-500">
+                <FileText className="mx-auto mb-2 h-6 w-6 text-zinc-600" />
+                暂无数据
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent blogs */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Newspaper className="h-4 w-4 text-emerald-200" />
+              最近博客
+            </CardTitle>
+            <CardDescription>最近发布的文章</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)
+            ) : recentBlogs.length > 0 ? (
+              recentBlogs.slice(0, 5).map((item) => (
+                <Link
+                  key={String(item.id)}
+                  href={`/blog/${item.id}`}
+                  className="flex items-center gap-3 rounded-md border border-white/10 bg-white/[0.04] p-3 transition hover:border-emerald-300/30 hover:bg-white/[0.08]"
+                >
+                  <Newspaper className="h-4 w-4 shrink-0 text-emerald-200" />
+                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-300">
+                    {item.title || "未命名文章"}
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
+                </Link>
+              ))
+            ) : (
+              <div className="py-8 text-center text-sm text-zinc-500">
+                <Newspaper className="mx-auto mb-2 h-6 w-6 text-zinc-600" />
+                暂无数据
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Service status */}
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Server className="h-4 w-4 text-cyan-200" />
+              本地优先栈状态
+            </CardTitle>
+            <CardDescription>FastAPI、PostgreSQL、Redis、RAG 服务运行状态</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {services.map((svc) => (
+                <div key={svc.name} className="rounded-md border border-white/10 bg-white/[0.04] p-4">
                   <div className="flex items-center justify-between">
-                    <CardDescription>{card.label}</CardDescription>
-                    <span className={`flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-white/10`}>
-                      <card.icon className={`h-4 w-4 ${card.tone}`} />
+                    <span className="text-sm font-medium text-white">{svc.name}</span>
+                    <StatusBadge status={svc.status} />
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        svc.status === "ok" ? "bg-emerald-400" : "bg-amber-400"
+                      )}
+                    />
+                    <span className="text-xs text-zinc-400">
+                      {svc.status === "ok" ? "运行中" : "异常"}
                     </span>
                   </div>
-                  <CardTitle className="text-3xl tabular-nums">{card.value.toLocaleString()}</CardTitle>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-
-          <div className="mt-5 grid gap-5 xl:grid-cols-[1.45fr_0.55fr]">
-            <Card>
-              <CardHeader>
-                <CardTitle>Token usage and latency</CardTitle>
-                <CardDescription>Streaming workload trend for the current workspace.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={stats.usage_series}>
-                      <defs>
-                        <linearGradient id="tokens" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#67e8f9" stopOpacity={0.45} />
-                          <stop offset="95%" stopColor="#67e8f9" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                      <XAxis dataKey="label" stroke="#71717a" tickLine={false} axisLine={false} />
-                      <YAxis stroke="#71717a" tickLine={false} axisLine={false} />
-                      <Tooltip
-                        contentStyle={{ background: "#09090b", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8 }}
-                      />
-                      <Area type="monotone" dataKey="tokens" stroke="#67e8f9" fill="url(#tokens)" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Model status</CardTitle>
-                <CardDescription>Configured provider readiness.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {stats.provider_status.map((provider) => (
-                  <div key={provider.provider} className="rounded-md border border-white/10 bg-white/[0.04] p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 font-medium text-white">
-                        <Server className="h-4 w-4 text-cyan-200" />
-                        {provider.provider}
-                      </div>
-                      <Badge variant={provider.configured ? "success" : "warning"}>
-                        {provider.configured ? "Ready" : "Needs key"}
-                      </Badge>
-                    </div>
-                    <div className="mt-3 flex justify-between text-sm text-zinc-400">
-                      <span>{provider.default_model ?? "custom"}</span>
-                      <span>{provider.latency_ms ?? "-"} ms</span>
-                    </div>
-                  </div>
-                ))}
-                <div className="rounded-md border border-white/10 bg-cyan-300/8 p-4 text-sm text-cyan-100">
-                  <Activity className="mb-2 h-4 w-4" />
-                  Token usage today: {stats.token_usage_today.toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </AppShell>
-    </ProtectedPage>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

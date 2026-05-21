@@ -10,8 +10,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark notranslate" translate="no">
       <head>
+        <meta name="google" content="notranslate" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <meta name="theme-color" content="#050506" />
