@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
   <img src="https://img.shields.io/badge/FastAPI-0.115-teal" alt="FastAPI">
@@ -28,14 +28,14 @@ ORIGIN AI Workspace is a lightweight self-hosted AI workspace for developers, st
 
 | Category | Current capability |
 |----------|--------------------|
-| AI Chat | Streaming responses, Markdown rendering, model switching, temperature and token controls, conversation history |
+| AI Chat | Streaming responses, Markdown rendering, model switching, temperature and token controls, conversation history. Streaming-safe rendering: code highlighting deferred until completion, translator-resistant DOM. |
 | Auth | JWT registration/login, bcrypt password hashing, profile and password management |
-| Dashboard | Workspace counters, provider readiness cards, usage chart surface |
+| Dashboard | Workspace summary endpoint with conversation/file/knowledge counts, recent items, service health cards (FastAPI / PostgreSQL / Redis / RAG), skeleton loading, error fallback |
 | Files | Upload PDF, TXT, Markdown, DOCX, and images. TXT/Markdown/DOCX text extraction is implemented; PDF extraction and image OCR are planned adapters. |
 | Knowledge | AI-generated Markdown notes and a RAG-ready document/chunk schema |
 | RAG Pipeline | Document chunking, pgvector vector store, OpenAI embeddings (production). A local hash-based embedding provider is included for **development only** — it is NOT semantic and should be replaced with OpenAI, BGE, Jina, or Ollama embeddings for real retrieval. |
 | Blog | Markdown blog engine with dark-mode reading pages |
-| Deploy | Docker Compose with PostgreSQL, Redis, Nginx, uploads volume, and health checks |
+| Deploy | Docker Compose with PostgreSQL, Redis, Nginx (SSE-friendly), uploads volume, and health checks |
 
 ## Docker Deployment
 
@@ -133,8 +133,9 @@ npm run api:migrate
 |---------|-------|
 | v0.1 | AI Chat, JWT auth, Dashboard, Docker deploy |
 | v0.2 | Conversation management, settings, Markdown, PWA, multi-model polish |
-| v0.3 | Local knowledge base, PDF extraction, OCR adapter, vector retrieval |
-| v0.4 | AI Agent, workflow builder, automation |
+| v0.3 | Dashboard summary API, chat streaming stability, code quality cleanup, translator-safe DOM |
+| v0.4 | Local knowledge base, PDF extraction, OCR adapter, vector retrieval polish |
+| v0.5 | AI Agent, workflow builder, automation |
 | v1.0 | Plugin ecosystem, MCP support, multi-user workspaces, mobile polish |
 
 ## Contributing
