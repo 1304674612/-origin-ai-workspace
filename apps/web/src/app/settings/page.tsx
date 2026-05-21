@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Loader2, User } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
@@ -27,21 +27,22 @@ export default function SettingsPage() {
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const u = await api.me();
-        setUser(u);
-        setUsername(u.username);
-        setFullName(u.full_name ?? "");
-      } catch {
-        toast("Failed to load profile", "error");
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      const u = await api.me();
+      setUser(u);
+      setUsername(u.username);
+      setFullName(u.full_name ?? "");
+    } catch {
+      toast("Failed to load profile", "error");
+    } finally {
+      setLoading(false);
     }
+  }, [toast]);
+
+  useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   async function saveProfile(event: FormEvent) {
     event.preventDefault();
@@ -121,7 +122,7 @@ export default function SettingsPage() {
           <Card className="mt-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><KeyRound className="h-4 w-4" /> Change password</CardTitle>
-              <CardDescription>Use a strong password you don't use elsewhere.</CardDescription>
+              <CardDescription>Use a strong password you do not use elsewhere.</CardDescription>
             </CardHeader>
             <CardContent>
               <form className="space-y-4" onSubmit={changePassword}>

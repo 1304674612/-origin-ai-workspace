@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Copy, Pencil, Plus, RefreshCw, Search, Send, Square, Trash2, User, Sparkles, MessageSquareText, Globe } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { Card } from "@origin/ui/components/card";
@@ -59,7 +59,17 @@ export function ChatClient() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  const loadingRef = useRef(false);
+  const conversationIdRef = useRef<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
 
   const filteredConversations = useMemo(
     () => conversations.filter((item) => item.title.toLowerCase().includes(search.toLowerCase())),
@@ -81,9 +91,9 @@ export function ChatClient() {
     return Object.values(groups).filter((g) => g.models.length > 0);
   }, [models]);
 
-  async function loadConversations() {
+  const loadConversations = useCallback(async () => {
     setConversations(await api.conversations());
-  }
+  }, []);
 
   async function loadConversation(id: string) {
     const conversation: Conversation = await api.conversation(id);
@@ -106,7 +116,7 @@ export function ChatClient() {
       }
     }
     void boot();
-  }, []);
+  }, [loadConversations]);
 
   const newConversation = useCallback(() => {
     setConversationId(null);
@@ -150,11 +160,15 @@ export function ChatClient() {
   const stopGeneration = useCallback(() => {
     abortRef.current?.abort();
     setLoading(false);
+    setMessages((current) =>
+      current.map((item) => (item.pending ? { ...item, pending: false } : item))
+    );
   }, []);
 
-  async function submit(messageText: string = input) {
+  const submit = useCallback(async (messageText: string = input) => {
     const trimmed = messageText.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loadingRef.current) return;
+    loadingRef.current = true;
     setInput("");
     setLoading(true);
     setError(null);
@@ -169,12 +183,12 @@ export function ChatClient() {
 
     const abort = new AbortController();
     abortRef.current = abort;
-    let activeConversationId = conversationId;
+    let activeConversationId = conversationIdRef.current;
 
     try {
       await api.streamChat(
         {
-          conversation_id: conversationId,
+          conversation_id: conversationIdRef.current,
           message: trimmed,
           provider,
           model,
@@ -185,6 +199,7 @@ export function ChatClient() {
         {
           onMeta: (id) => {
             activeConversationId = id;
+            conversationIdRef.current = id;
             setConversationId(id);
           },
           onToken: (delta) => {
@@ -224,19 +239,20 @@ export function ChatClient() {
       );
     } finally {
       setLoading(false);
+      loadingRef.current = false;
       abortRef.current = null;
     }
-  }
+  }, [input, loadConversations, maxTokens, model, provider, systemPrompt, toast, temperature]);
 
   const regenerate = useCallback(async () => {
     const lastUser = [...messages].reverse().find((message) => message.role === "user");
     if (lastUser) await submit(lastUser.content);
-  }, [messages]);
+  }, [messages, submit]);
 
   const onSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void submit();
-  }, [input, loading, provider, model, systemPrompt, temperature, maxTokens, conversationId]);
+  }, [submit]);
 
   return (
     <ProtectedPage>

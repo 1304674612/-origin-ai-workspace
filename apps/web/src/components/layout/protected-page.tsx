@@ -16,7 +16,7 @@ export function ProtectedPage({ children }: { children: React.ReactNode }) {
       return;
     }
     setReady(true);
-  }, []);
+  }, [router]);
 
   const showLoader = !mounted || !ready;
 

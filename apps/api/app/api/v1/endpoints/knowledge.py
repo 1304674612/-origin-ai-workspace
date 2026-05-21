@@ -2,15 +2,24 @@ from uuid import UUID
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from starlette import status
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.config import get_settings
 from app.core.exceptions import OriginError
-from app.models.rag import KnowledgeDocument
+from app.repositories.file_repository import FileRepository
+from app.repositories.knowledge_repository import KnowledgeRepository
+from app.schemas.knowledge import (
+    KnowledgeBaseCreate,
+    KnowledgeBaseRead,
+    KnowledgeBaseUpdate,
+    KnowledgeDocumentRead,
+)
 from app.services.ai.openai_provider import create_builtin_provider
 from app.services.ai.types import AIMessage, ChatCompletionRequest
+from app.services.rag.chunker import TextChunker
+from app.services.rag.embeddings import build_embedding_provider
+from app.services.rag.indexing_service import IndexingService
 
 router = APIRouter()
 
@@ -37,15 +46,34 @@ class KnowledgeItem(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ReindexRequest(BaseModel):
+    file_id: UUID
+
+
+@router.get("", response_model=list[KnowledgeItem])
+async def list_knowledge(
+    current_user: CurrentUser,
+    session: DbSession,
+) -> list[KnowledgeItem]:
+    docs = await KnowledgeRepository(session).list_documents(current_user.id)
+    return [
+        KnowledgeItem(
+            id=doc.id,
+            title=doc.title,
+            content=doc.document_metadata.get("content", ""),
+            created_at=doc.created_at.isoformat() if doc.created_at else "",
+        )
+        for doc in docs
+        if doc.source_type == "ai_generated"
+    ]
+
+
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_knowledge(
     payload: GenerateRequest,
     current_user: CurrentUser,
 ) -> GenerateResponse:
-    """Use the default AI model to generate knowledge content from a title."""
     settings = get_settings()
-
-    # Find the first configured provider
     provider_name = "deepseek"
     api_key = settings.deepseek_api_key
     if not api_key:
@@ -67,7 +95,6 @@ async def generate_knowledge(
         "practical examples, and best practices. Aim for 300-800 words. "
         "Use Chinese if the title is in Chinese, otherwise use English."
     )
-
     request = ChatCompletionRequest(
         provider=provider_name,
         model=settings.default_model,
@@ -78,11 +105,9 @@ async def generate_knowledge(
         temperature=0.7,
         max_tokens=2048,
     )
-
     chunks: list[str] = []
     async for delta in provider.stream_chat(request):
         chunks.append(delta)
-
     return GenerateResponse(content="".join(chunks))
 
 
@@ -92,58 +117,143 @@ async def save_knowledge(
     current_user: CurrentUser,
     session: DbSession,
 ) -> dict:
-    doc = KnowledgeDocument(
+    doc = await KnowledgeRepository(session).create_document(
         user_id=current_user.id,
         title=payload.title,
+        file_id=None,
+        knowledge_base_id=None,
         source_type="ai_generated",
-        document_metadata={"content": payload.content},
+        index_name="default",
+        metadata={"content": payload.content},
     )
-    session.add(doc)
     await session.commit()
     return {"id": str(doc.id)}
 
 
-@router.get("", response_model=list[KnowledgeItem])
-async def list_knowledge(
-    current_user: CurrentUser,
-    session: DbSession,
-) -> list[KnowledgeItem]:
-    result = await session.execute(
-        select(KnowledgeDocument)
-        .where(KnowledgeDocument.user_id == current_user.id)
-        .order_by(KnowledgeDocument.created_at.desc())
-    )
-    docs = result.scalars().all()
-    return [
-        KnowledgeItem(
-            id=doc.id,
-            title=doc.title,
-            content=doc.document_metadata.get("content", ""),
-            created_at=doc.created_at.isoformat() if doc.created_at else "",
-        )
-        for doc in docs
-    ]
-
-
-@router.get("/{doc_id}", response_model=KnowledgeItem)
+@router.get("/{doc_id:uuid}", response_model=KnowledgeItem)
 async def get_knowledge(
     doc_id: UUID,
     current_user: CurrentUser,
     session: DbSession,
 ) -> KnowledgeItem:
-    result = await session.execute(
-        select(KnowledgeDocument).where(
-            KnowledgeDocument.id == doc_id,
-            KnowledgeDocument.user_id == current_user.id,
-        )
-    )
-    doc = result.scalar_one_or_none()
+    doc = await KnowledgeRepository(session).get_document(doc_id, current_user.id)
     if doc is None:
         raise OriginError("Document not found", status.HTTP_404_NOT_FOUND)
-
     return KnowledgeItem(
         id=doc.id,
         title=doc.title,
         content=doc.document_metadata.get("content", ""),
         created_at=doc.created_at.isoformat() if doc.created_at else "",
     )
+
+
+@router.get("/bases", response_model=list[KnowledgeBaseRead])
+async def list_bases(session: DbSession, current_user: CurrentUser) -> list[KnowledgeBaseRead]:
+    bases = await KnowledgeRepository(session).list_bases(current_user.id)
+    return [KnowledgeBaseRead.model_validate(item) for item in bases]
+
+
+@router.post("/bases", response_model=KnowledgeBaseRead, status_code=201)
+async def create_base(
+    payload: KnowledgeBaseCreate,
+    session: DbSession,
+    current_user: CurrentUser,
+) -> KnowledgeBaseRead:
+    repo = KnowledgeRepository(session)
+    base = await repo.create_base(
+        user_id=current_user.id,
+        name=payload.name,
+        description=payload.description,
+        tags=payload.tags,
+    )
+    await session.commit()
+    await session.refresh(base)
+    return KnowledgeBaseRead.model_validate(base)
+
+
+@router.patch("/bases/{kb_id}", response_model=KnowledgeBaseRead)
+async def update_base(
+    kb_id: UUID,
+    payload: KnowledgeBaseUpdate,
+    session: DbSession,
+    current_user: CurrentUser,
+) -> KnowledgeBaseRead:
+    repo = KnowledgeRepository(session)
+    base = await repo.get_base(kb_id, current_user.id)
+    if base is None:
+        raise OriginError("Knowledge base not found", status.HTTP_404_NOT_FOUND)
+    await repo.update_base(base, **payload.model_dump(exclude_unset=True))
+    await session.commit()
+    await session.refresh(base)
+    return KnowledgeBaseRead.model_validate(base)
+
+
+@router.delete("/bases/{kb_id}", status_code=204)
+async def delete_base(
+    kb_id: UUID,
+    session: DbSession,
+    current_user: CurrentUser,
+) -> None:
+    repo = KnowledgeRepository(session)
+    base = await repo.get_base(kb_id, current_user.id)
+    if base is None:
+        raise OriginError("Knowledge base not found", status.HTTP_404_NOT_FOUND)
+    await repo.delete_base(base)
+    await session.commit()
+
+
+@router.get("/bases/{kb_id}/documents", response_model=list[KnowledgeDocumentRead])
+async def list_base_documents(
+    kb_id: UUID,
+    session: DbSession,
+    current_user: CurrentUser,
+) -> list[KnowledgeDocumentRead]:
+    repo = KnowledgeRepository(session)
+    base = await repo.get_base(kb_id, current_user.id)
+    if base is None:
+        raise OriginError("Knowledge base not found", status.HTTP_404_NOT_FOUND)
+    documents = await repo.list_documents(current_user.id, kb_id)
+    return [
+        KnowledgeDocumentRead(
+            id=doc.id,
+            knowledge_base_id=doc.knowledge_base_id,
+            file_id=doc.file_id,
+            title=doc.title,
+            source_type=doc.source_type,
+            index_name=doc.index_name,
+            embedding_model=doc.embedding_model,
+            document_metadata=doc.document_metadata,
+            chunk_count=len(doc.chunks),
+            created_at=doc.created_at,
+            updated_at=doc.updated_at,
+        )
+        for doc in documents
+    ]
+
+
+@router.post("/bases/{kb_id}/reindex", status_code=202)
+async def reindex_base(
+    kb_id: UUID,
+    payload: ReindexRequest,
+    session: DbSession,
+    current_user: CurrentUser,
+) -> dict:
+    repo = KnowledgeRepository(session)
+    base = await repo.get_base(kb_id, current_user.id)
+    if base is None:
+        raise OriginError("Knowledge base not found", status.HTTP_404_NOT_FOUND)
+    file_asset = await FileRepository(session).get(payload.file_id, current_user.id)
+    if file_asset is None:
+        raise OriginError("File not found", status.HTTP_404_NOT_FOUND)
+    extracted_text = file_asset.extracted_text
+    if not extracted_text:
+        raise OriginError("File has no extracted text to index", status.HTTP_400_BAD_REQUEST)
+    await IndexingService(session, TextChunker(), build_embedding_provider()).index_file(
+        current_user,
+        file_asset,
+        extracted_text,
+        knowledge_base_id=str(kb_id),
+        metadata={"knowledge_base_id": str(kb_id)},
+    )
+    await session.commit()
+    return {"ok": True}

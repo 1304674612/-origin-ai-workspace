@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Activity, Bot, Database, FileText, MessageSquareText, RefreshCw, Server } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@origin/ui/components/badge";
@@ -28,7 +28,7 @@ export function DashboardClient() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -40,11 +40,11 @@ export function DashboardClient() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toast]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const cards = [
     { label: "Conversations", value: stats.total_conversations, icon: MessageSquareText, tone: "text-cyan-200" },

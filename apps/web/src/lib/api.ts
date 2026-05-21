@@ -1,6 +1,6 @@
 import type { Conversation, ConversationListItem, FileAsset, ModelInfo, User } from "@origin/shared";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/+$/, "");
 
 export type AuthResponse = {
   access_token: string;
@@ -56,16 +56,44 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(apiUrl(path), {
     ...options,
     headers,
     cache: "no-store"
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail ?? "Request failed");
+    const error = await parseResponseBody<{ detail?: unknown }>(response);
+    throw new Error(typeof error?.detail === "string" ? error.detail : "Request failed");
   }
-  return response.json() as Promise<T>;
+  return parseResponseBody<T>(response);
+}
+
+function apiUrl(path: string): string {
+  const normalizedPath =
+    API_BASE.endsWith("/api") && path.startsWith("/api/") ? path.slice(4) : path;
+  return `${API_BASE}${normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`}`;
+}
+
+async function parseResponseBody<T>(response: Response): Promise<T> {
+  if (response.status === 204) return null as T;
+
+  const text = await response.text();
+  if (!text.trim()) return null as T;
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return text as T;
+    }
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as T;
+  }
 }
 
 export const api = {
@@ -121,7 +149,7 @@ export const api = {
     signal?: AbortSignal
   ) => {
     const token = getToken();
-    const response = await fetch(`${API_URL}/api/v1/chat/stream`, {
+    const response = await fetch(apiUrl("/api/v1/chat/stream"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -131,8 +159,8 @@ export const api = {
       signal
     });
     if (!response.ok || !response.body) {
-      const error = await response.json().catch(() => ({ detail: "Streaming failed" }));
-      throw new Error(error.detail ?? "Streaming failed");
+      const error = await parseResponseBody<{ detail?: unknown }>(response).catch(() => null);
+      throw new Error(typeof error?.detail === "string" ? error.detail : "Streaming failed");
     }
 
     const reader = response.body.getReader();

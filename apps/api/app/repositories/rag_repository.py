@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.rag import DocumentChunk, KnowledgeDocument
 
+__all__ = ["RagRepository"]
+
 
 class RagRepository:
     def __init__(self, session: AsyncSession) -> None:

@@ -40,6 +40,15 @@ class FileRepository:
         )
         return list(result.scalars().all())
 
+    async def get(self, file_id: UUID, user_id: UUID) -> FileAsset | None:
+        result = await self.session.execute(
+            select(FileAsset).where(
+                FileAsset.id == file_id,
+                FileAsset.user_id == user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
     async def update_parse_result(
         self,
         file_asset: FileAsset,

@@ -1,33 +1,25 @@
 "use client";
 
-import { useMemo } from "react";
-import { marked } from "marked";
-import hljs from "highlight.js";
-
-// Configure marked to use highlight.js
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 
 export function MarkdownContent({ content }: { content: string }) {
-  const html = useMemo(() => {
-    if (!content) return "";
-    return marked.parse(content, {
-      async: false,
-    }) as string;
-  }, [content]);
-
   return (
-    <div
-      className="text-sm leading-relaxed text-zinc-200 whitespace-pre-wrap"
-    >
-      {content}
+    <div className="prose prose-invert max-w-none break-words text-sm leading-relaxed text-zinc-200 prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-white/10 prose-pre:bg-[#0d1117] prose-pre:p-4 prose-code:break-words prose-code:text-cyan-100">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
+        components={{
+          a: ({ children, ...props }) => (
+            <a {...props} target="_blank" rel="noreferrer">
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
     </div>
   );
 }
-
-// Register highlight.js languages if needed
-try {
-  hljs.configure({});
-} catch {}

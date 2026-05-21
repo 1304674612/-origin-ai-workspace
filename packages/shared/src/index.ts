@@ -13,6 +13,10 @@ export type ConversationListItem = {
   title: string;
   model: string;
   provider: string;
+  knowledge_base_id?: string | null;
+  is_archived: boolean;
+  is_pinned: boolean;
+  is_favorite: boolean;
   updated_at: string;
 };
 
@@ -31,6 +35,46 @@ export type Conversation = ConversationListItem & {
   max_tokens: number;
   created_at: string;
   messages: ChatMessage[];
+};
+
+export type ProviderInfo = {
+  id: string;
+  name: string;
+  provider: string;
+  base_url?: string | null;
+  default_model?: string | null;
+  is_enabled: boolean;
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  is_default: boolean;
+};
+
+export type KnowledgeBaseInfo = {
+  id: string;
+  name: string;
+  description?: string | null;
+  is_archived: boolean;
+  is_pinned: boolean;
+  is_favorite: boolean;
+  tags: string[];
+  kb_metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type KnowledgeDocumentInfo = {
+  id: string;
+  knowledge_base_id?: string | null;
+  file_id?: string | null;
+  title: string;
+  source_type: string;
+  index_name: string;
+  embedding_model?: string | null;
+  document_metadata: Record<string, unknown>;
+  chunk_count: number;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ModelInfo = {

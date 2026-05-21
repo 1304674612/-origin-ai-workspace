@@ -19,6 +19,8 @@ class RetrievalResult:
 
 
 class VectorStore(ABC):
+    name: str
+
     @abstractmethod
     async def upsert(self, index_name: str, records: list[VectorRecord]) -> None:
         raise NotImplementedError

@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 
 
 class EmbeddingProvider(ABC):
+    name: str
+    model_name: str
+    dimensions: int
+
     @abstractmethod
     async def embed_documents(self, texts: list[str]) -> list[list[float]]:
         raise NotImplementedError

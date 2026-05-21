@@ -22,3 +22,6 @@ class AIProvider:
 
     async def stream_chat(self, request: ChatCompletionRequest) -> AsyncIterator[str]:
         raise NotImplementedError
+
+    async def list_models(self) -> list[str]:
+        return []

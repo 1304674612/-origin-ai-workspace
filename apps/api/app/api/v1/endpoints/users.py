@@ -4,6 +4,7 @@ from starlette import status
 from app.api.deps import CurrentUser, DbSession
 from app.core.exceptions import OriginError
 from app.core.security import verify_password, hash_password
+from app.repositories.user_repository import UserRepository
 from app.schemas.user import PasswordChange, UserRead, UserUpdate
 
 router = APIRouter()
@@ -17,6 +18,12 @@ async def get_me(current_user: CurrentUser) -> UserRead:
 @router.patch("/me", response_model=UserRead)
 async def update_me(payload: UserUpdate, current_user: CurrentUser, session: DbSession) -> UserRead:
     updates = payload.model_dump(exclude_unset=True)
+    username = updates.get("username")
+    if username and username != current_user.username:
+        existing = await UserRepository(session).get_by_username(username)
+        if existing is not None and existing.id != current_user.id:
+            raise OriginError("Username already exists", status.HTTP_409_CONFLICT)
+
     for key, value in updates.items():
         setattr(current_user, key, value)
     await session.commit()

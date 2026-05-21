@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.chat import Conversation
     from app.models.file import FileAsset
     from app.models.provider import AIProviderConfig
+    from app.models.knowledge_base import KnowledgeBase
 
 
 class User(Base):
@@ -41,5 +42,8 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
     provider_configs: Mapped[list["AIProviderConfig"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    knowledge_bases: Mapped[list["KnowledgeBase"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )

@@ -16,8 +16,8 @@ class ChatRepository:
     ) -> list[Conversation]:
         statement: Select[tuple[Conversation]] = (
             select(Conversation)
-            .where(Conversation.user_id == user_id)
-            .order_by(Conversation.updated_at.desc())
+            .where(Conversation.user_id == user_id, Conversation.is_archived.is_(False))
+            .order_by(Conversation.is_pinned.desc(), Conversation.updated_at.desc())
         )
         if query:
             statement = statement.where(Conversation.title.ilike(f"%{query}%"))
@@ -40,6 +40,7 @@ class ChatRepository:
         provider: str,
         model: str,
         system_prompt: str | None,
+        knowledge_base_id: UUID | None = None,
         temperature: float,
         max_tokens: int,
     ) -> Conversation:
@@ -49,6 +50,7 @@ class ChatRepository:
             provider=provider,
             model=model,
             system_prompt=system_prompt,
+            knowledge_base_id=knowledge_base_id,
             temperature=temperature,
             max_tokens=max_tokens,
         )

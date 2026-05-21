@@ -5,21 +5,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
   <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
   <img src="https://img.shields.io/badge/FastAPI-0.115-teal" alt="FastAPI">
   <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python">
 </p>
 
----
+## What Is ORIGIN?
 
-## What is ORIGIN?
-
-A lightweight, open-source AI workspace you run on your own machine. Chat with multiple AI models, manage files, monitor usage — all through a clean dark UI. Deploy with a single `docker compose up`.
-
-> Not a cloud service. Not a SaaS demo. Your keys, your data, your machine.
-
----
+ORIGIN AI Workspace is a lightweight self-hosted AI workspace for developers, students, NAS users, and personal workflows. It provides authenticated AI chat, conversation management, uploads, a RAG-ready document schema, a Markdown blog engine, and Docker/Nginx deployment.
 
 ## Screenshots
 
@@ -31,139 +24,125 @@ A lightweight, open-source AI workspace you run on your own machine. Chat with m
   <img src="docs/assets/blog.png" alt="Blog page" width="48%">
 </p>
 
----
-
 ## Features
 
-| Category | What you get |
-|----------|-------------|
-| **AI Chat** | Streaming responses, Markdown + code highlighting, multi-model switching (OpenAI / DeepSeek / Qwen / custom), temperature & token controls, conversation history |
-| **Auth** | JWT registration & login, bcrypt password hashing, session persistence |
-| **Dashboard** | Token usage, model health cards, latency charts, system status |
-| **Files** | Upload PDF, TXT, MD, DOCX, images — parser pipeline ready for RAG |
-| **Blog** | Built-in Markdown blog engine with tags, syntax highlighting, dark mode |
-| **Deploy** | Docker Compose with PostgreSQL, Redis, Nginx — one command to start |
+| Category | Current capability |
+|----------|--------------------|
+| AI Chat | Streaming responses, Markdown rendering, model switching, temperature and token controls, conversation history |
+| Auth | JWT registration/login, bcrypt password hashing, profile and password management |
+| Dashboard | Workspace counters, provider readiness cards, usage chart surface |
+| Files | Upload PDF, TXT, Markdown, DOCX, and images. TXT/Markdown/DOCX text extraction is implemented; PDF extraction and image OCR are planned adapters. |
+| Knowledge | AI-generated Markdown notes and a RAG-ready document/chunk schema |
+| Blog | Markdown blog engine with dark-mode reading pages |
+| Deploy | Docker Compose with PostgreSQL, Redis, Nginx, uploads volume, and health checks |
 
----
-
-## Quick Start
+## Docker Deployment
 
 ```bash
-git clone https://github.com/1304674612/-origin-ai-workspace.git
-cd -origin-ai-workspace
-cp .env.example .env
-# Edit .env with your API keys
+cp .env.docker.example .env
+openssl rand -hex 32
+# Paste the generated value into JWT_SECRET_KEY.
+# Change POSTGRES_PASSWORD before exposing the service.
 docker compose up -d --build
 ```
 
-Open **http://localhost:8080** and you're in.
+Open `http://localhost:8080`.
 
-<details>
-<summary>Local development setup</summary>
+The web app uses same-origin API requests by default (`/api`). Nginx proxies `/api/*` to FastAPI, so browsers use the current host instead of a baked-in `localhost` address.
+
+## Local Development
+
+Run PostgreSQL and Redis locally, then:
 
 ```bash
-# Frontend
+cp .env.local.example .env
+openssl rand -hex 32
+# Paste the generated value into JWT_SECRET_KEY.
 npm install
-npm run dev:web        # http://localhost:3000
-
-# Backend
-cd apps/api
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-alembic upgrade head
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-</details>
 
----
+Backend:
+
+```bash
+python3.11 -m venv apps/api/.venv
+apps/api/.venv/bin/pip install -e "apps/api[dev]"
+npm run api:migrate
+npm run dev:api
+```
+
+Frontend:
+
+```bash
+npm run dev:web
+```
+
+Open `http://localhost:3000`. During local development, Next.js rewrites `/api/*` to `ORIGIN_API_URL` from `.env.local.example`.
+
+## Environment
+
+| File | Purpose |
+|------|---------|
+| `.env.example` | Minimal template; unsafe until secrets are filled |
+| `.env.local.example` | Local development with `localhost` services and `./uploads` |
+| `.env.docker.example` | Docker/NAS deployment with container hostnames and `/app/uploads` |
+
+`JWT_SECRET_KEY` is required and must be secure. Generate it with:
+
+```bash
+openssl rand -hex 32
+```
+
+Common placeholders such as `change-me`, `default-secret`, and `replace-this` are rejected at startup.
 
 ## Architecture
-
-```
-┌─────────────┐     ┌─────────────┐     ┌──────────────┐
-│  Next.js 15 │────▶│   Nginx     │────▶│   FastAPI     │
-│  (Port 3000)│     │  (Port 8080)│     │   (Port 8000) │
-└─────────────┘     └─────────────┘     └──────┬───────┘
-                                               │
-                          ┌────────────────────┼────────────────────┐
-                          │                    │                    │
-                     ┌────▼────┐         ┌────▼────┐         ┌─────▼───┐
-                     │PostgreSQL│        │  Redis   │         │ Uploads │
-                     │   :5432  │        │  :6379   │         │ (Volume)│
-                     └─────────┘         └─────────┘         └─────────┘
-```
-
-| Layer | Stack |
-|-------|-------|
-| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS, Framer Motion |
-| Backend | FastAPI, Python 3.11+, SQLAlchemy 2 (async), Alembic |
-| Data | PostgreSQL 16, Redis 7 |
-| AI | OpenAI SDK-compatible streaming, pluggable provider abstraction |
-| Deploy | Docker, Docker Compose, Nginx |
-
----
-
-## Repository
 
 ```
 apps/
   web/          Next.js application
   api/          FastAPI backend
 packages/
-  ui/           Shared UI components (shadcn-style)
+  ui/           Shared UI components
   shared/       Shared TypeScript types
-  config/       Shared config presets
+  config/       Shared config package
 docker/
   nginx/        Reverse proxy config
-docs/           Architecture & deployment docs
+docs/           Architecture and deployment docs
 ```
 
----
+| Layer | Stack |
+|-------|-------|
+| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS |
+| Backend | FastAPI, Python 3.11+, SQLAlchemy 2 async, Alembic |
+| Data | PostgreSQL 16, Redis 7 |
+| AI | OpenAI SDK-compatible streaming provider abstraction |
+| Deploy | Docker, Docker Compose, Nginx |
+
+## Scripts
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+npm run api:migrate
+```
 
 ## Roadmap
 
 | Version | Focus |
 |---------|-------|
-| **v0.1** | AI Chat, JWT auth, Dashboard, Docker deploy ✅ |
-| **v0.2** | Conversation management, settings, Markdown, PWA, multi-model polish ✅ |
-| **v0.3** | Local knowledge base, vector retrieval, document parsing |
-| **v0.4** | AI Agent, Workflow builder, automation |
-| **v1.0** | Plugin ecosystem, MCP support, multi-user, mobile UI |
-
----
-
-## Environment Variables
-
-| Variable | Required | Notes |
-|----------|----------|-------|
-| `JWT_SECRET_KEY` | **Yes** | Min 32 chars. Generate: `openssl rand -hex 32` |
-| `OPENAI_API_KEY` | For OpenAI | Or set `DEEPSEEK_API_KEY` / `QWEN_API_KEY` |
-| `DATABASE_URL` | No | Defaults to local PostgreSQL |
-| `REDIS_URL` | No | Defaults to local Redis |
-| `NEXT_PUBLIC_API_URL` | No | Browser-facing API URL |
-
-See `.env.example` for the full list.
-
----
+| v0.1 | AI Chat, JWT auth, Dashboard, Docker deploy |
+| v0.2 | Conversation management, settings, Markdown, PWA, multi-model polish |
+| v0.3 | Local knowledge base, PDF extraction, OCR adapter, vector retrieval |
+| v0.4 | AI Agent, workflow builder, automation |
+| v1.0 | Plugin ecosystem, MCP support, multi-user workspaces, mobile polish |
 
 ## Contributing
 
-Issues and PRs are welcome.
-
-1. Open an issue for larger changes before coding
-2. Keep changes focused — one PR, one purpose
-3. Run `npm run typecheck` before pushing frontend changes
-4. Include screenshots for UI changes
-
----
+1. Open an issue for larger changes before coding.
+2. Keep changes focused.
+3. Run `npm run typecheck`, `npm run lint`, and backend checks before pushing.
+4. Include screenshots for UI changes.
 
 ## License
 
 MIT © 2026 Mickl
-
----
-
-<div align="center">
-  <sub>Built with ❤️ for the self-hosting community</sub>
-</div>

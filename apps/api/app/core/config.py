@@ -8,6 +8,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
+UNSAFE_JWT_SECRET_MARKERS = {
+    "change-me",
+    "example-secret",
+    "default-secret",
+    "your-secret-here",
+    "replace-this",
+    "change-me-with-openssl-rand-hex-32",
+    "invalid_change_this",
+}
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -62,20 +72,29 @@ def _env_was_set(name: str) -> bool:
 def _warn_if_default_in_production(settings: Settings) -> None:
     if settings.app_env.lower() != "production":
         return
-    if not _env_was_set("DATABASE_URL"):
+    if (
+        not _env_was_set("DATABASE_URL")
+        or settings.database_url
+        == "postgresql+asyncpg://origin:origin_password@localhost:5432/origin_ai"
+    ):
         logger.warning("DATABASE_URL is using the built-in default in production.")
-    if not _env_was_set("REDIS_URL"):
+    if not _env_was_set("REDIS_URL") or settings.redis_url == "redis://localhost:6379/0":
         logger.warning("REDIS_URL is using the built-in default in production.")
 
 
 @lru_cache
 def get_settings() -> Settings:
     settings = Settings()
-    if not settings.jwt_secret_key or len(settings.jwt_secret_key) < 32:
+    jwt_secret = settings.jwt_secret_key.strip()
+    normalized_secret = jwt_secret.lower()
+    if any(marker in normalized_secret for marker in UNSAFE_JWT_SECRET_MARKERS):
+        raise ValueError("Unsafe JWT secret detected. Please configure a secure production secret.")
+    if not jwt_secret or len(jwt_secret) < 32:
         raise ValueError(
             "JWT_SECRET_KEY is required and must be at least 32 characters long. "
             "Generate one with: openssl rand -hex 32"
         )
+    settings.jwt_secret_key = jwt_secret
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     _warn_if_default_in_production(settings)
     return settings

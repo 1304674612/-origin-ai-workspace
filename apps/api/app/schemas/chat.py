@@ -26,6 +26,7 @@ class ConversationCreate(BaseModel):
     provider: str = "openai"
     model: str = "gpt-4o-mini"
     system_prompt: str | None = None
+    knowledge_base_id: UUID | None = None
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=2048, ge=1, le=32000)
 
@@ -35,6 +36,10 @@ class ConversationUpdate(BaseModel):
     provider: str | None = None
     model: str | None = None
     system_prompt: str | None = None
+    knowledge_base_id: UUID | None = None
+    is_archived: bool | None = None
+    is_pinned: bool | None = None
+    is_favorite: bool | None = None
     temperature: float | None = Field(default=None, ge=0, le=2)
     max_tokens: int | None = Field(default=None, ge=1, le=32000)
 
@@ -45,11 +50,15 @@ class ConversationRead(ORMModel):
     model: str
     provider: str
     system_prompt: str | None
+    knowledge_base_id: UUID | None
+    is_archived: bool
+    is_pinned: bool
+    is_favorite: bool
     temperature: float
     max_tokens: int
     created_at: datetime
     updated_at: datetime
-    messages: list[ChatMessageRead] = []
+    messages: list[ChatMessageRead] = Field(default_factory=list)
 
 
 class ConversationListItem(ORMModel):
@@ -57,6 +66,10 @@ class ConversationListItem(ORMModel):
     title: str
     model: str
     provider: str
+    knowledge_base_id: UUID | None
+    is_archived: bool
+    is_pinned: bool
+    is_favorite: bool
     updated_at: datetime
 
 
@@ -66,6 +79,7 @@ class ChatRequest(BaseModel):
     provider: str = "openai"
     model: str = "gpt-4o-mini"
     system_prompt: str | None = None
+    knowledge_base_id: UUID | None = None
     temperature: float = Field(default=0.7, ge=0, le=2)
     max_tokens: int = Field(default=2048, ge=1, le=32000)
 
