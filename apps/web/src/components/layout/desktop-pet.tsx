@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { BookOpen, Loader2, Plus, Sparkles, X } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { Input } from "@origin/ui/components/input";
@@ -100,13 +100,9 @@ export function DesktopPet() {
       </motion.button>
 
       {/* Knowledge panel */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
+      {open && (
+          <div
             ref={containerRef}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className="fixed bottom-24 right-6 z-50 w-[420px] max-w-[calc(100vw-3rem)] overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl shadow-black/40"
           >
             {/* Header */}
@@ -211,9 +207,8 @@ export function DesktopPet() {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
     </>
   );
 }
