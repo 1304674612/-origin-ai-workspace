@@ -6,8 +6,9 @@ import { getToken } from "@/lib/api";
 
 export function ProtectedPage({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  const showLoader = !mounted || !authed;
 
   useEffect(() => {
     setMounted(true);
@@ -15,23 +16,32 @@ export function ProtectedPage({ children }: { children: React.ReactNode }) {
       router.replace("/auth/login");
       return;
     }
-    setReady(true);
-  }, [router]);
-
-  const showLoader = !mounted || !ready;
+    setAuthed(true);
+  }, []);
 
   return (
-    <>
-      <div
-        aria-hidden={!showLoader}
-        style={{ display: showLoader ? undefined : "none" }}
-        className="flex min-h-screen items-center justify-center bg-[#050506] text-sm text-zinc-400"
-      >
-        Preparing workspace...
-      </div>
-      <div style={{ display: showLoader ? "none" : undefined }}>
+    <div style={{ position: "relative", minHeight: "100vh" }}>
+      {/* Content always rendered and visible — prevents React DOM reconciliation errors */}
+      <div style={{ visibility: showLoader ? "hidden" : "visible" }}>
         {children}
       </div>
-    </>
+
+      {/* Loader as an overlay on top of content */}
+      {showLoader ? (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#050506",
+            zIndex: 10,
+          }}
+        >
+          <span className="text-sm text-zinc-400">Preparing workspace...</span>
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -34,7 +34,6 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               password: String(form.get("password"))
             });
       setSession(response);
-      toast(`Welcome${response.user.username ? ", " + response.user.username : ""}!`, "success");
       router.push("/dashboard");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Authentication failed";
