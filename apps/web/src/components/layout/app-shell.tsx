@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[#050506]">
+    <div key={pathname} className="min-h-screen bg-[#050506]">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-white/10 bg-zinc-950/82 p-4 backdrop-blur-xl lg:block">
         <Link href="/" className="flex items-center gap-3 rounded-md px-2 py-3 text-sm font-semibold text-white">
           <span className="flex h-9 w-9 items-center justify-center rounded-md bg-cyan-300 text-zinc-950">
