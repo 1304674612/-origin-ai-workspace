@@ -34,3 +34,12 @@ def decode_access_token(token: str) -> str | None:
         return None
     subject = payload.get("sub")
     return str(subject) if subject else None
+
+
+def token_expires_seconds() -> int:
+    settings = get_settings()
+    return settings.jwt_access_token_expire_minutes * 60
+
+
+def cookie_name() -> str:
+    return "origin_token"

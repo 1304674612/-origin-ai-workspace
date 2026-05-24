@@ -3,8 +3,6 @@ import type { Conversation, ConversationListItem, FileAsset, ModelInfo, User } f
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/+$/, "");
 
 export type AuthResponse = {
-  access_token: string;
-  token_type: "bearer";
   user: User;
 };
 
@@ -34,6 +32,13 @@ export type DashboardSummary = {
   services: Array<{ name: string; status: string }>;
 };
 
+export type PaginatedResponse<T> = {
+  items: T[];
+  total: number;
+  offset: number;
+  limit: number;
+};
+
 export type UpdateCheck = {
   update_available: boolean;
   current_version: string;
@@ -44,33 +49,48 @@ export type UpdateCheck = {
   error?: string;
 };
 
-export function getToken() {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem("origin_token");
+export async function isAuthenticated(): Promise<boolean> {
+  try {
+    await request<User>("/api/v1/users/me");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function setSession(response: AuthResponse) {
-  window.localStorage.setItem("origin_token", response.access_token);
   window.localStorage.setItem("origin_user", JSON.stringify(response.user));
 }
 
-export function clearSession() {
-  window.localStorage.removeItem("origin_token");
+export async function clearSession() {
   window.localStorage.removeItem("origin_user");
+  await fetch(apiUrl("/api/v1/auth/logout"), {
+    method: "POST",
+    credentials: "include",
+  }).catch(() => {});
+}
+
+export function getStoredUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem("origin_user");
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-  if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(apiUrl(path), {
     ...options,
     headers,
-    cache: "no-store"
+    credentials: "include",
+    cache: "no-store",
   });
   if (!response.ok) {
     const error = await parseResponseBody<{ detail?: unknown }>(response);
@@ -110,11 +130,9 @@ async function parseResponseBody<T>(response: Response): Promise<T> {
 function unwrapResponse<T>(json: unknown): T {
   if (json !== null && typeof json === "object") {
     const obj = json as Record<string, unknown>;
-    // Handle { data: {...} } envelope
     if ("data" in obj && obj.data !== null && typeof obj.data === "object") {
       return obj.data as T;
     }
-    // Handle { result: {...} } envelope
     if ("result" in obj && obj.result !== null && typeof obj.result === "object") {
       return obj.result as T;
     }
@@ -127,6 +145,7 @@ export const api = {
     request<AuthResponse>("/api/v1/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   register: (payload: { email: string; username: string; password: string; full_name?: string }) =>
     request<AuthResponse>("/api/v1/auth/register", { method: "POST", body: JSON.stringify(payload) }),
+  logout: () => clearSession(),
   me: () => request<User>("/api/v1/users/me"),
   updateMe: (payload: { username?: string; full_name?: string }) =>
     request<User>("/api/v1/users/me", { method: "PATCH", body: JSON.stringify(payload) }),
@@ -139,19 +158,24 @@ export const api = {
     request<{ content: string }>("/api/v1/knowledge/generate", { method: "POST", body: JSON.stringify({ title }) }),
   knowledgeSave: (payload: { title: string; content: string }) =>
     request<{ id: string }>("/api/v1/knowledge", { method: "POST", body: JSON.stringify(payload) }),
-  knowledgeList: () =>
-    request<Array<{ id: string; title: string; content: string; created_at: string }>>("/api/v1/knowledge"),
+  knowledgeList: (offset = 0, limit = 200) =>
+    request<PaginatedResponse<{ id: string; title: string; content: string; created_at: string }>>(
+      `/api/v1/knowledge?offset=${offset}&limit=${limit}`
+    ),
   knowledgeGet: (id: string) =>
     request<{ id: string; title: string; content: string; created_at: string }>(`/api/v1/knowledge/${id}`),
   models: () => request<ModelInfo[]>("/api/v1/providers/models"),
-  conversations: (q?: string) =>
-    request<ConversationListItem[]>(`/api/v1/chat/conversations${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+  conversations: (q?: string, offset = 0, limit = 200) =>
+    request<PaginatedResponse<ConversationListItem>>(
+      `/api/v1/chat/conversations?offset=${offset}&limit=${limit}${q ? `&q=${encodeURIComponent(q)}` : ""}`
+    ),
   conversation: (id: string) => request<Conversation>(`/api/v1/chat/conversations/${id}`),
   deleteConversation: (id: string) =>
     request<void>(`/api/v1/chat/conversations/${id}`, { method: "DELETE" }),
   updateConversation: (id: string, payload: { title?: string }) =>
     request<Conversation>(`/api/v1/chat/conversations/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
-  files: () => request<FileAsset[]>("/api/v1/files"),
+  files: (offset = 0, limit = 200) =>
+    request<PaginatedResponse<FileAsset>>(`/api/v1/files?offset=${offset}&limit=${limit}`),
   uploadFile: (file: File) => {
     const form = new FormData();
     form.append("upload", file);
@@ -173,17 +197,14 @@ export const api = {
       onError?: (detail: string) => void;
       onDone?: () => void;
     },
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => {
-    const token = getToken();
     const response = await fetch(apiUrl("/api/v1/chat/stream"), {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(payload),
-      signal
+      signal,
     });
     if (!response.ok || !response.body) {
       const error = await parseResponseBody<{ detail?: unknown }>(response).catch(() => null);
@@ -222,5 +243,5 @@ export const api = {
         }
       }
     }
-  }
+  },
 };

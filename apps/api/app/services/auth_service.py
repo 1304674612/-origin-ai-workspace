@@ -15,9 +15,15 @@ class AuthService:
 
     async def register(self, payload: RegisterRequest) -> TokenResponse:
         if await self.users.get_by_email(payload.email):
-            raise OriginError("Email is already registered", status.HTTP_409_CONFLICT)
+            raise OriginError(
+                "Registration failed. If you already have an account, please sign in instead.",
+                status.HTTP_409_CONFLICT,
+            )
         if await self.users.get_by_username(payload.username):
-            raise OriginError("Username is already taken", status.HTTP_409_CONFLICT)
+            raise OriginError(
+                "Registration failed. If you already have an account, please sign in instead.",
+                status.HTTP_409_CONFLICT,
+            )
 
         user = await self.users.create(
             email=payload.email,

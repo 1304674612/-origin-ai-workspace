@@ -3,7 +3,7 @@ from starlette import status
 
 from app.api.deps import CurrentUser, DbSession
 from app.core.exceptions import OriginError
-from app.core.security import verify_password, hash_password
+from app.core.security import hash_password, verify_password
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import PasswordChange, UserRead, UserUpdate
 

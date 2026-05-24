@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, DbSession
-from app.api.v1.endpoints.providers import provider_status
+from app.core.config import get_redis, get_settings
+from app.core.database import engine
 from app.repositories.chat_repository import ChatRepository
 from app.repositories.file_repository import FileRepository
 from app.repositories.knowledge_repository import KnowledgeRepository
@@ -25,13 +26,44 @@ def _to_summary_items(items: list, title_attr: str = "title", limit: int = 5) ->
     ]
 
 
-def _get_services() -> list[ServiceStatus]:
-    # TODO: replace with real health probes (DB ping, Redis ping, RAG readiness)
+async def _probe_pg() -> str:
+    try:
+        async with engine.connect() as conn:
+            await conn.exec_driver_sql("SELECT 1")
+        return "ok"
+    except Exception:
+        return "down"
+
+
+async def _probe_redis() -> str:
+    try:
+        redis = await get_redis()
+        await redis.ping()
+        return "ok"
+    except Exception:
+        return "down"
+
+
+async def _probe_rag() -> str:
+    settings = get_settings()
+    if settings.openai_api_key:
+        return "ok"
+    return "degraded"
+
+
+async def _get_services() -> list[ServiceStatus]:
+    pg_status, redis_status, rag_status = await _probe_pg(), await _probe_redis(), await _probe_rag()
     return [
         ServiceStatus(name="FastAPI", status="ok"),
-        ServiceStatus(name="PostgreSQL", status="ok"),
-        ServiceStatus(name="Redis", status="ok"),
-        ServiceStatus(name="RAG", status="ok"),
+        ServiceStatus(name="PostgreSQL", status=pg_status),
+        ServiceStatus(name="Redis", status=redis_status),
+        ServiceStatus(name="RAG", status=rag_status),
+    ]
+
+
+async def _get_usage_series(user_id) -> list[UsagePoint]:
+    return [
+        UsagePoint(label="Today", tokens=0, latency_ms=0),
     ]
 
 
@@ -41,7 +73,29 @@ async def get_dashboard_stats(session: DbSession, current_user: CurrentUser) -> 
     file_repository = FileRepository(session)
     rag_repository = RagRepository(session)
     usage_total = await chat_repository.token_usage_total(current_user.id)
-    providers: list[ProviderStatus] = await provider_status()
+    settings = get_settings()
+    providers: list[ProviderStatus] = [
+        ProviderStatus(
+            provider="openai",
+            configured=bool(settings.openai_api_key),
+            default_model=settings.default_model,
+        ),
+        ProviderStatus(
+            provider="deepseek",
+            configured=bool(settings.deepseek_api_key),
+            default_model="deepseek-chat",
+        ),
+        ProviderStatus(
+            provider="qwen",
+            configured=bool(settings.qwen_api_key),
+            default_model="qwen-plus",
+        ),
+        ProviderStatus(
+            provider="compatible",
+            configured=bool(settings.openai_compatible_base_url),
+            default_model="custom",
+        ),
+    ]
     return DashboardStats(
         total_conversations=await chat_repository.count_conversations(current_user.id),
         total_messages=await chat_repository.count_messages(current_user.id),
@@ -49,15 +103,7 @@ async def get_dashboard_stats(session: DbSession, current_user: CurrentUser) -> 
         indexed_documents=await rag_repository.count_documents(current_user.id),
         token_usage_today=usage_total,
         provider_status=providers,
-        usage_series=[
-            UsagePoint(label="Mon", tokens=max(120, usage_total // 7), latency_ms=180),
-            UsagePoint(label="Tue", tokens=max(240, usage_total // 6), latency_ms=164),
-            UsagePoint(label="Wed", tokens=max(180, usage_total // 5), latency_ms=158),
-            UsagePoint(label="Thu", tokens=max(320, usage_total // 4), latency_ms=149),
-            UsagePoint(label="Fri", tokens=max(460, usage_total // 3), latency_ms=141),
-            UsagePoint(label="Sat", tokens=max(280, usage_total // 5), latency_ms=176),
-            UsagePoint(label="Sun", tokens=max(390, usage_total // 4), latency_ms=153),
-        ],
+        usage_series=await _get_usage_series(current_user.id),
     )
 
 
@@ -69,17 +115,23 @@ async def get_dashboard_summary(
     file_repo = FileRepository(session)
     knowledge_repo = KnowledgeRepository(session)
 
-    conversations = await chat_repo.list_conversations(current_user.id)
-    files = await file_repo.list_files(current_user.id)
-    knowledge_bases = await knowledge_repo.list_bases(current_user.id)
+    conversations, conversations_total = await chat_repo.list_conversations(
+        current_user.id, limit=10
+    )
+    files, files_total = await file_repo.list_files(current_user.id, limit=10)
+    knowledge_bases, kb_total = await knowledge_repo.list_bases(current_user.id, limit=10)
+
+    services = await _get_services()
+    all_ok = all(s.status == "ok" for s in services)
+    system_status = "ok" if all_ok else "degraded"
 
     return DashboardSummary(
-        conversations_count=len(conversations),
-        files_count=len(files),
-        blogs_count=len(knowledge_bases),
-        system_status="ok",
+        conversations_count=conversations_total,
+        files_count=files_total,
+        blogs_count=kb_total,
+        system_status=system_status,
         recent_conversations=_to_summary_items(conversations),
         recent_files=_to_summary_items(files, title_attr="filename"),
         recent_blogs=_to_summary_items(knowledge_bases, title_attr="name"),
-        services=_get_services(),
+        services=services,
     )

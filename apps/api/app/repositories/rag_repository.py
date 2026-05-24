@@ -3,6 +3,8 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tokens import count_tokens
+from app.models.embedding import EmbeddingRecord
 from app.models.rag import DocumentChunk, KnowledgeDocument
 
 __all__ = ["RagRepository"]
@@ -42,13 +44,34 @@ class RagRepository:
                 document_id=document_id,
                 chunk_index=index,
                 content=content,
-                token_count=max(1, len(content) // 4),
+                token_count=max(1, count_tokens(content)),
             )
             for index, content in enumerate(chunks)
         ]
         self.session.add_all(records)
         await self.session.flush()
         return records
+
+    async def add_embedding(
+        self,
+        *,
+        chunk_id: UUID,
+        provider: str,
+        model: str,
+        vector: list[float],
+        metadata: dict | None = None,
+    ) -> EmbeddingRecord:
+        record = EmbeddingRecord(
+            chunk_id=chunk_id,
+            provider=provider,
+            model=model,
+            vector_dimensions=len(vector),
+            vector_data=vector,
+            embedding_metadata=metadata or {},
+        )
+        self.session.add(record)
+        await self.session.flush()
+        return record
 
     async def count_documents(self, user_id: UUID) -> int:
         result = await self.session.execute(

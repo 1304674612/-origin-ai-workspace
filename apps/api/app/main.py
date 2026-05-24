@@ -13,7 +13,7 @@ settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.2.0",
+    version=settings.current_version.lstrip("v"),
     description="Self-hosted AI workspace API",
     openapi_url=f"{settings.api_v1_prefix}/openapi.json",
 )
@@ -25,11 +25,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(RateLimitMiddleware, limit_per_minute=settings.rate_limit_per_minute)
+app.add_middleware(RateLimitMiddleware)
 register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-    return HealthResponse(status="ok", app=settings.app_name, version="0.2.0")
+    return HealthResponse(status="ok", app=settings.app_name, version=settings.current_version)

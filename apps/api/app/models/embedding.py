@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,9 +24,7 @@ class EmbeddingRecord(Base):
     provider: Mapped[str] = mapped_column(String(80), index=True)
     model: Mapped[str] = mapped_column(String(120), index=True)
     vector_dimensions: Mapped[int] = mapped_column(Integer)
-    vector_data: Mapped[list[float]] = mapped_column(
-        JSONVariant().with_variant(JSONB, "postgresql"), default=list
-    )
+    vector_data: Mapped[list[float]] = mapped_column(Vector)
     embedding_metadata: Mapped[dict] = mapped_column(
         JSONVariant().with_variant(JSONB, "postgresql"), default=dict
     )

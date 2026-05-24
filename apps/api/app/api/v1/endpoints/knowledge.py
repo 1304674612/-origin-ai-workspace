@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 from starlette import status
 
@@ -9,6 +9,7 @@ from app.core.config import get_settings
 from app.core.exceptions import OriginError
 from app.repositories.file_repository import FileRepository
 from app.repositories.knowledge_repository import KnowledgeRepository
+from app.schemas.common import PaginatedResponse
 from app.schemas.knowledge import (
     KnowledgeBaseCreate,
     KnowledgeBaseRead,
@@ -50,22 +51,31 @@ class ReindexRequest(BaseModel):
     file_id: UUID
 
 
-@router.get("", response_model=list[KnowledgeItem])
+@router.get("", response_model=PaginatedResponse[KnowledgeItem])
 async def list_knowledge(
     current_user: CurrentUser,
     session: DbSession,
-) -> list[KnowledgeItem]:
-    docs = await KnowledgeRepository(session).list_documents(current_user.id)
-    return [
-        KnowledgeItem(
-            id=doc.id,
-            title=doc.title,
-            content=doc.document_metadata.get("content", ""),
-            created_at=doc.created_at.isoformat() if doc.created_at else "",
-        )
-        for doc in docs
-        if doc.source_type == "ai_generated"
-    ]
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> PaginatedResponse[KnowledgeItem]:
+    repo = KnowledgeRepository(session)
+    docs, total = await repo.list_documents(
+        current_user.id, source_type="ai_generated", offset=offset, limit=limit
+    )
+    return PaginatedResponse(
+        items=[
+            KnowledgeItem(
+                id=doc.id,
+                title=doc.title,
+                content=doc.document_metadata.get("content", ""),
+                created_at=doc.created_at.isoformat() if doc.created_at else "",
+            )
+            for doc in docs
+        ],
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post("/generate", response_model=GenerateResponse)
@@ -147,10 +157,20 @@ async def get_knowledge(
     )
 
 
-@router.get("/bases", response_model=list[KnowledgeBaseRead])
-async def list_bases(session: DbSession, current_user: CurrentUser) -> list[KnowledgeBaseRead]:
-    bases = await KnowledgeRepository(session).list_bases(current_user.id)
-    return [KnowledgeBaseRead.model_validate(item) for item in bases]
+@router.get("/bases", response_model=PaginatedResponse[KnowledgeBaseRead])
+async def list_bases(
+    session: DbSession,
+    current_user: CurrentUser,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> PaginatedResponse[KnowledgeBaseRead]:
+    bases, total = await KnowledgeRepository(session).list_bases(current_user.id, offset, limit)
+    return PaginatedResponse(
+        items=[KnowledgeBaseRead.model_validate(item) for item in bases],
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post("/bases", response_model=KnowledgeBaseRead, status_code=201)
@@ -202,33 +222,42 @@ async def delete_base(
     await session.commit()
 
 
-@router.get("/bases/{kb_id}/documents", response_model=list[KnowledgeDocumentRead])
+@router.get("/bases/{kb_id}/documents", response_model=PaginatedResponse[KnowledgeDocumentRead])
 async def list_base_documents(
     kb_id: UUID,
     session: DbSession,
     current_user: CurrentUser,
-) -> list[KnowledgeDocumentRead]:
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> PaginatedResponse[KnowledgeDocumentRead]:
     repo = KnowledgeRepository(session)
     base = await repo.get_base(kb_id, current_user.id)
     if base is None:
         raise OriginError("Knowledge base not found", status.HTTP_404_NOT_FOUND)
-    documents = await repo.list_documents(current_user.id, kb_id)
-    return [
-        KnowledgeDocumentRead(
-            id=doc.id,
-            knowledge_base_id=doc.knowledge_base_id,
-            file_id=doc.file_id,
-            title=doc.title,
-            source_type=doc.source_type,
-            index_name=doc.index_name,
-            embedding_model=doc.embedding_model,
-            document_metadata=doc.document_metadata,
-            chunk_count=len(doc.chunks),
-            created_at=doc.created_at,
-            updated_at=doc.updated_at,
-        )
-        for doc in documents
-    ]
+    documents, total = await repo.list_documents(
+        current_user.id, kb_id=kb_id, offset=offset, limit=limit
+    )
+    return PaginatedResponse(
+        items=[
+            KnowledgeDocumentRead(
+                id=doc.id,
+                knowledge_base_id=doc.knowledge_base_id,
+                file_id=doc.file_id,
+                title=doc.title,
+                source_type=doc.source_type,
+                index_name=doc.index_name,
+                embedding_model=doc.embedding_model,
+                document_metadata=doc.document_metadata,
+                chunk_count=len(doc.chunks),
+                created_at=doc.created_at,
+                updated_at=doc.updated_at,
+            )
+            for doc in documents
+        ],
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post("/bases/{kb_id}/reindex", status_code=202)
@@ -248,11 +277,19 @@ async def reindex_base(
     extracted_text = file_asset.extracted_text
     if not extracted_text:
         raise OriginError("File has no extracted text to index", status.HTTP_400_BAD_REQUEST)
+
+    existing_docs, _ = await repo.list_documents(
+        current_user.id, kb_id=kb_id, limit=1000
+    )
+    for doc in existing_docs:
+        if doc.file_id == payload.file_id:
+            await repo.delete_document(doc)
+
     await IndexingService(session, TextChunker(), build_embedding_provider()).index_file(
         current_user,
         file_asset,
         extracted_text,
-        knowledge_base_id=str(kb_id),
+        knowledge_base_id=kb_id,
         metadata={"knowledge_base_id": str(kb_id)},
     )
     await session.commit()

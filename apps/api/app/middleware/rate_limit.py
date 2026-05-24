@@ -1,44 +1,87 @@
 from time import monotonic
-from typing import Any
 
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 from starlette.status import HTTP_429_TOO_MANY_REQUESTS
 
+from app.core.config import get_redis, get_settings
 
-class InMemoryRateLimiter:
-    def __init__(self, limit_per_minute: int) -> None:
-        self.limit = limit_per_minute
-        self.window_seconds = 60
-        self.hits: dict[str, list[float]] = {}
-
-    def allow(self, key: str) -> bool:
-        now = monotonic()
-        window_start = now - self.window_seconds
-        timestamps = [ts for ts in self.hits.get(key, []) if ts >= window_start]
-        if len(timestamps) >= self.limit:
-            self.hits[key] = timestamps
-            return False
-        timestamps.append(now)
-        self.hits[key] = timestamps
-        return True
+SKIP_PATHS = {"/health", "/docs", "/openapi.json"}
+AUTH_PATHS = {"/api/v1/auth/login", "/api/v1/auth/register"}
 
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app: Any, limit_per_minute: int) -> None:
-        super().__init__(app)
-        self.limiter = InMemoryRateLimiter(limit_per_minute)
+def _extract_client_ip(scope: dict) -> str:
+    headers = dict(scope.get("headers", []))
+    forwarded = headers.get(b"x-forwarded-for")
+    if forwarded:
+        return forwarded.decode("latin-1").split(",")[0].strip()
+    real_ip = headers.get(b"x-real-ip")
+    if real_ip:
+        return real_ip.decode("latin-1")
+    client = scope.get("client")
+    if client:
+        return client[0]
+    return "unknown"
 
-    async def dispatch(self, request: Request, call_next: Any) -> Response:
-        if request.url.path in {"/health", "/docs", "/openapi.json"}:
-            return await call_next(request)
 
-        client_host = request.client.host if request.client else "unknown"
-        key = f"{client_host}:{request.url.path}"
-        if not self.limiter.allow(key):
-            return JSONResponse(
+async def _redis_allow(key: str, limit: int, window: int = 60) -> bool:
+    redis = await get_redis()
+    current = await redis.incr(key)
+    if current == 1:
+        await redis.expire(key, window)
+    return current <= limit
+
+
+class RateLimitMiddleware:
+    """Pure ASGI middleware — safe for streaming responses."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["path"] in SKIP_PATHS:
+            await self.app(scope, receive, send)
+            return
+
+        settings = get_settings()
+        client_ip = _extract_client_ip(scope)
+        path = scope["path"]
+        key = f"rate_limit:{client_ip}:{path}"
+
+        if path in AUTH_PATHS:
+            limit = 5
+            window = 60
+        else:
+            limit = settings.rate_limit_per_minute
+            window = 60
+
+        try:
+            allowed = await _redis_allow(key, limit, window)
+        except Exception:
+            allowed = _inmemory_allow(key, limit, window)
+
+        if not allowed:
+            response = JSONResponse(
                 status_code=HTTP_429_TOO_MANY_REQUESTS,
                 content={"detail": "Rate limit exceeded"},
             )
-        return await call_next(request)
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+
+
+# In-memory fallback when Redis is unavailable
+_hits: dict[str, tuple[int, list[float]]] = {}
+
+
+def _inmemory_allow(key: str, limit: int, window: int = 60) -> bool:
+    now = monotonic()
+    window_start = now - window
+    current, timestamps = _hits.get(key, (0, []))
+    timestamps = [ts for ts in timestamps if ts >= window_start]
+    if len(timestamps) >= limit:
+        _hits[key] = (current, timestamps)
+        return False
+    timestamps.append(now)
+    _hits[key] = (current + 1, timestamps)
+    return True

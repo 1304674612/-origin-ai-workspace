@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Activity, ArrowRight, Bot, Database, Gauge, Server, Sparkles } from "lucide-react";
-import { api, getToken, type DashboardStats } from "@/lib/api";
+import { api, getStoredUser, type DashboardStats } from "@/lib/api";
 import { Badge } from "@origin/ui/components/badge";
 import { Button } from "@origin/ui/components/button";
 
@@ -13,14 +13,14 @@ export function DashboardPreview() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!getToken()) {
+    if (!getStoredUser()) {
       setLoading(false);
       return;
     }
     api.dashboard().then(setStats).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  if (!getToken()) {
+  if (!getStoredUser()) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 24 }}

@@ -3,6 +3,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
+import redis.asyncio as aioredis
 from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,12 +32,13 @@ class Settings(BaseSettings):
     app_url: AnyHttpUrl | str = "http://localhost:3000"
     api_url: AnyHttpUrl | str = "http://localhost:8000"
     api_v1_prefix: str = "/api/v1"
-    current_version: str = "v0.2.0"
+    current_version: str = "v0.3.0"
 
     jwt_secret_key: str = Field(default="")
     app_encryption_key: str = Field(default="")
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60 * 24
+    jwt_cookie_secure: bool = False
 
     database_url: str = "postgresql+asyncpg://origin:origin_password@localhost:5432/origin_ai"
     redis_url: str = "redis://localhost:6379/0"
@@ -64,6 +66,17 @@ class Settings(BaseSettings):
     @property
     def max_upload_size_bytes(self) -> int:
         return self.max_upload_size_mb * 1024 * 1024
+
+
+_redis_pool: aioredis.Redis | None = None
+
+
+async def get_redis() -> aioredis.Redis:
+    global _redis_pool
+    if _redis_pool is None:
+        settings = get_settings()
+        _redis_pool = aioredis.from_url(settings.redis_url, decode_responses=True)
+    return _redis_pool
 
 
 def _env_was_set(name: str) -> bool:
@@ -102,7 +115,14 @@ def get_settings() -> Settings:
             "APP_ENCRYPTION_KEY is required and must be at least 32 characters long. "
             "Generate one with: openssl rand -hex 32"
         )
+    if encryption_key == jwt_secret:
+        raise ValueError(
+            "APP_ENCRYPTION_KEY must be different from JWT_SECRET_KEY. "
+            "Generate a separate key with: openssl rand -hex 32"
+        )
     settings.app_encryption_key = encryption_key
+    if settings.app_env.lower() == "production":
+        settings.jwt_cookie_secure = True
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     _warn_if_default_in_production(settings)
     return settings

@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-origin}
@@ -50,8 +50,6 @@ services:
       interval: 20s
       timeout: 5s
       retries: 5
-    ports:
-      - "8000:8000"
 
   web:
     build:

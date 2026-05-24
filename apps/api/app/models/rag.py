@@ -10,9 +10,9 @@ from app.core.database import Base
 from app.models.types import JSONVariant, UUIDVariant
 
 if TYPE_CHECKING:
+    from app.models.embedding import EmbeddingRecord
     from app.models.file import FileAsset
     from app.models.knowledge_base import KnowledgeBase
-    from app.models.embedding import EmbeddingRecord
 
 
 class KnowledgeDocument(Base):
@@ -57,7 +57,6 @@ class DocumentChunk(Base):
     chunk_index: Mapped[int] = mapped_column(Integer)
     content: Mapped[str] = mapped_column(Text)
     token_count: Mapped[int] = mapped_column(Integer, default=0)
-    vector_id: Mapped[str | None] = mapped_column(String(260), default=None, index=True)
     chunk_metadata: Mapped[dict] = mapped_column(
         JSONVariant().with_variant(JSONB, "postgresql"), default=dict
     )

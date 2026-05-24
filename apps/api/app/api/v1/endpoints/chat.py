@@ -11,19 +11,29 @@ from app.schemas.chat import (
     ConversationRead,
     ConversationUpdate,
 )
+from app.schemas.common import PaginatedResponse
 from app.services.chat_service import ChatService
 
 router = APIRouter()
 
 
-@router.get("/conversations", response_model=list[ConversationListItem])
+@router.get("/conversations", response_model=PaginatedResponse[ConversationListItem])
 async def list_conversations(
     session: DbSession,
     current_user: CurrentUser,
     q: str | None = Query(default=None),
-) -> list[ConversationListItem]:
-    conversations = await ChatService(session).list_conversations(current_user, q)
-    return [ConversationListItem.model_validate(item) for item in conversations]
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> PaginatedResponse[ConversationListItem]:
+    conversations, total = await ChatService(session).list_conversations(
+        current_user, q, offset, limit
+    )
+    return PaginatedResponse(
+        items=[ConversationListItem.model_validate(item) for item in conversations],
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
 
 
 @router.post("/conversations", response_model=ConversationRead, status_code=201)

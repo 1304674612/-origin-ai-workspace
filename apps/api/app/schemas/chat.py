@@ -75,13 +75,13 @@ class ConversationListItem(ORMModel):
 
 class ChatRequest(BaseModel):
     conversation_id: UUID | None = None
-    message: str = Field(min_length=1)
+    message: str = Field(min_length=1, max_length=32000)
     provider: str = "openai"
     model: str = "gpt-4o-mini"
-    system_prompt: str | None = None
+    system_prompt: str | None = Field(default=None, max_length=8000)
     knowledge_base_id: UUID | None = None
     temperature: float = Field(default=0.7, ge=0, le=2)
-    max_tokens: int = Field(default=2048, ge=1, le=32000)
+    max_tokens: int = Field(default=2048, ge=1, le=128000)
 
 
 class ChatResponse(BaseModel):

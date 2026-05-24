@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from uuid import uuid4
 
@@ -34,8 +35,8 @@ class FileService:
         self.repository = FileRepository(session)
         self.parser = FileParser()
 
-    async def list_files(self, user: User):
-        return await self.repository.list_files(user.id)
+    async def list_files(self, user: User, offset: int = 0, limit: int = 50):
+        return await self.repository.list_files(user.id, offset, limit)
 
     async def upload(self, user: User, upload: UploadFile):
         settings = get_settings()
@@ -71,7 +72,10 @@ class FileService:
         await self.session.flush()
 
         try:
-            extracted_text, metadata = await self.parser.parse(storage_path, upload.content_type)
+            loop = asyncio.get_event_loop()
+            extracted_text, metadata = await loop.run_in_executor(
+                None, self.parser.parse, storage_path, upload.content_type
+            )
             status = FileStatus.parsed if extracted_text else FileStatus.uploaded
             await self.repository.update_parse_result(
                 file_asset,

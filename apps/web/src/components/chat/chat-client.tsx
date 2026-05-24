@@ -92,7 +92,7 @@ export function ChatClient() {
   }, [models]);
 
   const loadConversations = useCallback(async () => {
-    setConversations(await api.conversations());
+    setConversations((await api.conversations()).items);
   }, []);
 
   async function loadConversation(id: string) {

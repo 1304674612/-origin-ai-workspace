@@ -1,9 +1,11 @@
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+import json
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.tokens import count_tokens
 from app.models.embedding import EmbeddingRecord
 from app.models.knowledge_base import KnowledgeBase
 from app.models.rag import DocumentChunk, KnowledgeDocument
@@ -14,13 +16,22 @@ class KnowledgeRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def list_bases(self, user_id: UUID) -> list[KnowledgeBase]:
-        result = await self.session.execute(
-            select(KnowledgeBase)
-            .where(KnowledgeBase.user_id == user_id, KnowledgeBase.is_archived.is_(False))
-            .order_by(KnowledgeBase.is_pinned.desc(), KnowledgeBase.updated_at.desc())
+    async def list_bases(
+        self, user_id: UUID, offset: int = 0, limit: int = 50
+    ) -> tuple[list[KnowledgeBase], int]:
+        base = select(KnowledgeBase).where(
+            KnowledgeBase.user_id == user_id, KnowledgeBase.is_archived.is_(False)
         )
-        return list(result.scalars().all())
+        total_result = await self.session.execute(
+            select(func.count()).select_from(base.subquery())
+        )
+        total = int(total_result.scalar_one())
+        result = await self.session.execute(
+            base.order_by(KnowledgeBase.is_pinned.desc(), KnowledgeBase.updated_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(result.scalars().all()), total
 
     async def get_base(self, kb_id: UUID, user_id: UUID) -> KnowledgeBase | None:
         result = await self.session.execute(
@@ -76,17 +87,29 @@ class KnowledgeRepository:
         await self.session.flush()
         return kb
 
-    async def list_documents(self, user_id: UUID, kb_id: UUID | None = None) -> list[KnowledgeDocument]:
-        statement = (
+    async def list_documents(
+        self, user_id: UUID, kb_id: UUID | None = None, source_type: str | None = None,
+        offset: int = 0, limit: int = 50
+    ) -> tuple[list[KnowledgeDocument], int]:
+        base = (
             select(KnowledgeDocument)
-            .options(selectinload(KnowledgeDocument.chunks))
             .where(KnowledgeDocument.user_id == user_id)
-            .order_by(KnowledgeDocument.created_at.desc())
         )
         if kb_id is not None:
-            statement = statement.where(KnowledgeDocument.knowledge_base_id == kb_id)
-        result = await self.session.execute(statement)
-        return list(result.scalars().all())
+            base = base.where(KnowledgeDocument.knowledge_base_id == kb_id)
+        if source_type is not None:
+            base = base.where(KnowledgeDocument.source_type == source_type)
+        total_result = await self.session.execute(
+            select(func.count()).select_from(base.subquery())
+        )
+        total = int(total_result.scalar_one())
+        result = await self.session.execute(
+            base.options(selectinload(KnowledgeDocument.chunks))
+            .order_by(KnowledgeDocument.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(result.scalars().all()), total
 
     async def create_document(
         self,
@@ -141,7 +164,7 @@ class KnowledgeRepository:
             document_id=document_id,
             chunk_index=chunk_index,
             content=content,
-            token_count=max(1, len(content) // 4),
+            token_count=max(1, count_tokens(content)),
             chunk_metadata=metadata,
         )
         self.session.add(chunk)
@@ -204,6 +227,68 @@ class KnowledgeRepository:
         query_vector: list[float],
         knowledge_base_id: UUID | None = None,
         limit: int = 8,
+    ) -> list[RetrievalResult]:
+        try:
+            return await self._search_pgvector(index_name, query_vector, knowledge_base_id, limit)
+        except Exception:
+            return await self._search_fallback(index_name, query_vector, knowledge_base_id, limit)
+
+    async def _search_pgvector(
+        self,
+        index_name: str,
+        query_vector: list[float],
+        knowledge_base_id: UUID | None,
+        limit: int,
+    ) -> list[RetrievalResult]:
+        query = text("""
+            WITH latest_embeddings AS (
+                SELECT DISTINCT ON (chunk_id) chunk_id, vector_data
+                FROM embeddings
+                ORDER BY chunk_id, created_at DESC
+            )
+            SELECT dc.id, dc.content, dc.document_id, dc.chunk_metadata,
+                   kd.title AS document_title,
+                   1 - (le.vector_data <=> :query_vector::vector) AS similarity
+            FROM document_chunks dc
+            JOIN knowledge_documents kd ON dc.document_id = kd.id
+            JOIN latest_embeddings le ON dc.id = le.chunk_id
+            WHERE kd.index_name = :index_name
+              AND (:kb_id IS NULL OR kd.knowledge_base_id = :kb_id)
+            ORDER BY similarity DESC
+            LIMIT :limit
+        """)
+        params = {
+            "query_vector": json.dumps(query_vector),
+            "index_name": index_name,
+            "kb_id": str(knowledge_base_id) if knowledge_base_id else None,
+            "limit": limit,
+        }
+        result = await self.session.execute(query, params)
+        rows = result.fetchall()
+        return [
+            RetrievalResult(
+                id=str(row.id),
+                text=row.content,
+                score=float(row.similarity),
+                metadata={
+                    "chunk_id": str(row.id),
+                    "document_id": str(row.document_id),
+                    "document_title": row.document_title,
+                    "page_number": (row.chunk_metadata or {}).get("page_number"),
+                    "source": (row.chunk_metadata or {}).get("source"),
+                    "mime_type": (row.chunk_metadata or {}).get("mime_type"),
+                    "file_name": (row.chunk_metadata or {}).get("file_name"),
+                },
+            )
+            for row in rows
+        ]
+
+    async def _search_fallback(
+        self,
+        index_name: str,
+        query_vector: list[float],
+        knowledge_base_id: UUID | None,
+        limit: int,
     ) -> list[RetrievalResult]:
         result = await self.session.execute(
             select(DocumentChunk)
@@ -275,9 +360,9 @@ def _cosine_similarity(left: list[float], right: list[float]) -> float:
     size = min(len(left), len(right))
     left = left[:size]
     right = right[:size]
-    numerator = sum(l * r for l, r in zip(left, right))
-    left_norm = sum(l * l for l in left) ** 0.5
-    right_norm = sum(r * r for r in right) ** 0.5
+    numerator = sum(lv * rv for lv, rv in zip(left, right, strict=False))
+    left_norm = sum(lv * lv for lv in left) ** 0.5
+    right_norm = sum(rv * rv for rv in right) ** 0.5
     if left_norm == 0 or right_norm == 0:
         return 0.0
     return numerator / (left_norm * right_norm)

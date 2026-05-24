@@ -12,17 +12,24 @@ class ChatRepository:
         self.session = session
 
     async def list_conversations(
-        self, user_id: UUID, query: str | None = None
-    ) -> list[Conversation]:
-        statement: Select[tuple[Conversation]] = (
+        self, user_id: UUID, query: str | None = None, offset: int = 0, limit: int = 50
+    ) -> tuple[list[Conversation], int]:
+        base = (
             select(Conversation)
             .where(Conversation.user_id == user_id, Conversation.is_archived.is_(False))
-            .order_by(Conversation.is_pinned.desc(), Conversation.updated_at.desc())
         )
         if query:
-            statement = statement.where(Conversation.title.ilike(f"%{query}%"))
-        result = await self.session.execute(statement)
-        return list(result.scalars().all())
+            base = base.where(Conversation.title.ilike(f"%{query}%"))
+        total_result = await self.session.execute(
+            select(func.count()).select_from(base.subquery())
+        )
+        total = int(total_result.scalar_one())
+        result = await self.session.execute(
+            base.order_by(Conversation.is_pinned.desc(), Conversation.updated_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(result.scalars().all()), total
 
     async def get_conversation(self, conversation_id: UUID, user_id: UUID) -> Conversation | None:
         result = await self.session.execute(

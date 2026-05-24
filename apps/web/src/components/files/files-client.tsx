@@ -35,7 +35,7 @@ export function FilesClient() {
 
   async function load() {
     try {
-      setFiles(await api.files());
+      setFiles((await api.files()).items);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load files");
     }

@@ -1,14 +1,14 @@
 from pathlib import Path
 
+import pytesseract
 from bs4 import BeautifulSoup
 from docx import Document
 from PIL import Image
 from pypdf import PdfReader
-import pytesseract
 
 
 class FileParser:
-    async def parse(self, path: Path, content_type: str | None) -> tuple[str | None, dict]:
+    def parse(self, path: Path, content_type: str | None) -> tuple[str | None, dict]:
         suffix = path.suffix.lower()
         if suffix in {".txt", ".md", ".markdown"}:
             text = path.read_text(encoding="utf-8", errors="ignore")

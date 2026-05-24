@@ -11,8 +11,8 @@ from app.models.types import JSONVariant, UUIDVariant
 
 if TYPE_CHECKING:
     from app.models.chat import Conversation
+    from app.models.rag import KnowledgeDocument
     from app.models.user import User
-    from app.models.rag import DocumentChunk
 
 
 class KnowledgeBase(Base):

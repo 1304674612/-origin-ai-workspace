@@ -1,4 +1,3 @@
-from time import monotonic
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -21,42 +20,35 @@ from app.schemas.provider import (
 
 router = APIRouter()
 
+_STATIC_MODELS: list[ModelInfo] = [
+    ModelInfo(id="gpt-4o-mini", name="GPT-4o mini", provider="openai", context_window=128000),
+    ModelInfo(id="gpt-4.1-mini", name="GPT-4.1 mini", provider="openai", context_window=1000000),
+    ModelInfo(id="deepseek-chat", name="DeepSeek Chat", provider="deepseek", context_window=64000),
+    ModelInfo(id="qwen-plus", name="Qwen Plus", provider="qwen", context_window=131072),
+    ModelInfo(id="claude-3-5-sonnet", name="Claude 3.5 Sonnet", provider="anthropic", context_window=200000),
+    ModelInfo(id="llama3.1-70b", name="Llama 3.1 70B", provider="ollama", context_window=128000),
+    ModelInfo(id="custom", name="OpenAI Compatible", provider="compatible", context_window=128000),
+]
+
+
+def _provider_configured(provider: str) -> bool:
+    settings = get_settings()
+    mapping = {
+        "openai": settings.openai_api_key,
+        "deepseek": settings.deepseek_api_key,
+        "qwen": settings.qwen_api_key,
+        "compatible": settings.openai_compatible_base_url,
+        "anthropic": None,
+        "ollama": None,
+    }
+    return bool(mapping.get(provider))
+
 
 @router.get("/models", response_model=list[ModelInfo])
 async def list_models() -> list[ModelInfo]:
     return [
-        ModelInfo(id="gpt-4o-mini", name="GPT-4o mini", provider="openai", context_window=128000),
-        ModelInfo(
-            id="gpt-4.1-mini",
-            name="GPT-4.1 mini",
-            provider="openai",
-            context_window=1000000,
-        ),
-        ModelInfo(
-            id="deepseek-chat",
-            name="DeepSeek Chat",
-            provider="deepseek",
-            context_window=64000,
-        ),
-        ModelInfo(id="qwen-plus", name="Qwen Plus", provider="qwen", context_window=131072),
-        ModelInfo(
-            id="claude-3-5-sonnet",
-            name="Claude 3.5 Sonnet",
-            provider="anthropic",
-            context_window=200000,
-        ),
-        ModelInfo(
-            id="llama3.1-70b",
-            name="Llama 3.1 70B",
-            provider="ollama",
-            context_window=128000,
-        ),
-        ModelInfo(
-            id="custom",
-            name="OpenAI Compatible",
-            provider="compatible",
-            context_window=128000,
-        ),
+        model for model in _STATIC_MODELS
+        if _provider_configured(model.provider)
     ]
 
 
@@ -68,25 +60,21 @@ async def provider_status() -> list[ProviderStatus]:
             provider="openai",
             configured=bool(settings.openai_api_key),
             default_model=settings.default_model,
-            latency_ms=142,
         ),
         ProviderStatus(
             provider="deepseek",
             configured=bool(settings.deepseek_api_key),
             default_model="deepseek-chat",
-            latency_ms=188,
         ),
         ProviderStatus(
             provider="qwen",
             configured=bool(settings.qwen_api_key),
             default_model="qwen-plus",
-            latency_ms=164,
         ),
         ProviderStatus(
             provider="compatible",
             configured=bool(settings.openai_compatible_base_url),
             default_model="custom",
-            latency_ms=210,
         ),
     ]
 
@@ -175,11 +163,9 @@ async def test_provider(
         raise OriginError("Provider API key is missing", status.HTTP_400_BAD_REQUEST)
 
     client = AsyncOpenAI(api_key=api_key, base_url=provider.base_url)
-    start = monotonic()
     try:
-        models = await client.models.list()
-        latency_ms = int((monotonic() - start) * 1000)
-        model_info = [
+        models_response = await client.models.list()
+        model_list = [
             ModelInfo(
                 id=item.id,
                 name=item.id,
@@ -187,13 +173,12 @@ async def test_provider(
                 context_window=128000,
                 supports_streaming=True,
             )
-            for item in models.data[:10]
+            for item in models_response.data[:10]
         ]
         return ProviderTestResult(
             ok=True,
             message="Connection successful",
-            latency_ms=latency_ms,
-            models=model_info,
+            models=model_list,
         )
     except Exception as exc:
         raise OriginError(f"Provider test failed: {exc}", status.HTTP_400_BAD_REQUEST) from exc

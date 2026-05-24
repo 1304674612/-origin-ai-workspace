@@ -32,13 +32,18 @@ class FileRepository:
         await self.session.flush()
         return file_asset
 
-    async def list_files(self, user_id: UUID) -> list[FileAsset]:
-        result = await self.session.execute(
-            select(FileAsset)
-            .where(FileAsset.user_id == user_id)
-            .order_by(FileAsset.created_at.desc())
+    async def list_files(
+        self, user_id: UUID, offset: int = 0, limit: int = 50
+    ) -> tuple[list[FileAsset], int]:
+        base = select(FileAsset).where(FileAsset.user_id == user_id)
+        total_result = await self.session.execute(
+            select(func.count()).select_from(base.subquery())
         )
-        return list(result.scalars().all())
+        total = int(total_result.scalar_one())
+        result = await self.session.execute(
+            base.order_by(FileAsset.created_at.desc()).offset(offset).limit(limit)
+        )
+        return list(result.scalars().all()), total
 
     async def get(self, file_id: UUID, user_id: UUID) -> FileAsset | None:
         result = await self.session.execute(

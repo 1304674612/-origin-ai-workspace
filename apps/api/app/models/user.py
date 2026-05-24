@@ -12,8 +12,8 @@ from app.models.types import JSONVariant, UUIDVariant
 if TYPE_CHECKING:
     from app.models.chat import Conversation
     from app.models.file import FileAsset
-    from app.models.provider import AIProviderConfig
     from app.models.knowledge_base import KnowledgeBase
+    from app.models.provider import AIProviderConfig
 
 
 class User(Base):

@@ -10,7 +10,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY apps/api /app
-RUN pip install --no-cache-dir -e .
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -e .
 
 EXPOSE 8000
 

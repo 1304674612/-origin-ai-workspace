@@ -5,7 +5,7 @@ import { BookOpen, Loader2, Plus, Sparkles, X } from "lucide-react";
 import { Button } from "@origin/ui/components/button";
 import { Input } from "@origin/ui/components/input";
 import { Textarea } from "@origin/ui/components/textarea";
-import { api, getToken } from "@/lib/api";
+import { api, getStoredUser } from "@/lib/api";
 import { useToast } from "@/lib/toast";
 
 interface KnowledgeDoc {
@@ -27,16 +27,15 @@ export function DesktopPet() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const token = getToken();
+  const user = getStoredUser();
 
-  // Load existing docs
   const loadDocs = useCallback(async () => {
-    if (!token) return;
+    if (!user) return;
     try {
-      const list = await api.knowledgeList();
-      setDocs(list);
+      const result = await api.knowledgeList();
+      setDocs(result.items);
     } catch {}
-  }, [token]);
+  }, [user]);
 
   useEffect(() => {
     if (open && tab === "browse") loadDocs();
@@ -75,7 +74,7 @@ export function DesktopPet() {
     }
   }
 
-  if (!token) return null;
+  if (!user) return null;
 
   return (
     <>

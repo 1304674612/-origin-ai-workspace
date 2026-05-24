@@ -2,26 +2,29 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getToken } from "@/lib/api";
+import { isAuthenticated } from "@/lib/api";
 
 export function ProtectedPage({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/auth/login");
-      return;
-    }
-    setAuthed(true);
-  }, []);
+    let cancelled = false;
+    isAuthenticated().then((ok) => {
+      if (cancelled) return;
+      if (!ok) {
+        router.replace("/auth/login");
+        return;
+      }
+      setAuthed(true);
+    });
+    return () => { cancelled = true; };
+  }, [router]);
 
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
-      {/* Content always mounted — no DOM reconciliation on auth transition */}
       {children}
 
-      {/* Loader stays in DOM forever, only CSS opacity changes. No removeChild/insertBefore. */}
       <div
         style={{
           position: "fixed",
