@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.4.1-blue" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/Next.js-15-black" alt="Next.js">
   <img src="https://img.shields.io/badge/FastAPI-0.115-teal" alt="FastAPI">
@@ -134,7 +134,8 @@ npm run api:migrate
 | v0.1 | AI Chat, JWT auth, Dashboard, Docker deploy |
 | v0.2 | Conversation management, settings, Markdown, PWA, multi-model polish |
 | v0.3 | Dashboard summary API, chat streaming stability, code quality cleanup, translator-safe DOM |
-| v0.4 | Local knowledge base, PDF extraction, OCR adapter, vector retrieval polish |
+| v0.4.0 | Local knowledge base, PDF extraction, OCR adapter, vector retrieval polish |
+| v0.4.1 | CI/CD quality: mypy type check, pytest, Vitest, Turborepo, VS Code debugging |
 | v0.5 | AI Agent, workflow builder, automation |
 | v1.0 | Plugin ecosystem, MCP support, multi-user workspaces, mobile polish |
 
@@ -142,7 +143,7 @@ npm run api:migrate
 
 1. Open an issue for larger changes before coding.
 2. Keep changes focused.
-3. Run `npm run typecheck`, `npm run lint`, and backend checks before pushing.
+3. Run `npm run typecheck && npm run lint && npm test` and backend checks (`npm run test:api`, `cd apps/api && mypy app/`) before pushing.
 4. Include screenshots for UI changes.
 
 ## License

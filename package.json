@@ -1,6 +1,6 @@
 {
   "name": "origin-ai-workspace",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "A modern self-hosted AI workspace for developers, students, NAS users, and personal workflows.",
   "license": "MIT",
@@ -17,14 +17,22 @@
     "lint": "npm run lint --workspace @origin/web",
     "typecheck": "npm run typecheck --workspace @origin/web",
     "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:api": "sh -c 'if [ -x apps/api/.venv/bin/pytest ]; then exec apps/api/.venv/bin/pytest apps/api/tests/ -v; else echo \"Install dev deps first\"; exit 1; fi'",
     "api:migrate": "sh -c 'if [ -x apps/api/.venv/bin/alembic ]; then exec apps/api/.venv/bin/alembic -c apps/api/alembic.ini upgrade head; else echo \"Create apps/api/.venv first: python3 -m venv apps/api/.venv && apps/api/.venv/bin/pip install -e \\\"apps/api[dev]\\\"\"; exit 1; fi'"
   },
   "devDependencies": {
-    "prettier": "^3.5.3"
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.5.3",
+    "turbo": "^2.9.14",
+    "vitest": "^4.1.7"
   },
   "engines": {
     "node": ">=20.18.0",
     "npm": ">=10.0.0"
-  },
-  "dependencies": {}
+  }
 }

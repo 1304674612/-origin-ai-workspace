@@ -26,13 +26,16 @@ jobs:
       - run: npm ci
 
       - name: Type check
-        run: npm run typecheck
+        run: npx turbo typecheck
 
       - name: Lint
-        run: npm run lint
+        run: npx turbo lint
+
+      - name: Test
+        run: npx turbo test
 
       - name: Build
-        run: npm run build
+        run: npx turbo build
         env:
           NEXT_TELEMETRY_DISABLED: 1
           NEXT_PUBLIC_API_URL: http://localhost:8000
@@ -61,6 +64,12 @@ jobs:
 
       - name: Format check
         run: ruff format --check .
+
+      - name: Type check (mypy)
+        run: mypy app/
+
+      - name: Tests
+        run: pytest tests/ -v --cov=app --cov-report=term-missing
 
       - name: Smoke test
         run: |

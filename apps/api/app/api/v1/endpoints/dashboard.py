@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, DbSession
@@ -16,6 +18,8 @@ from app.schemas.dashboard import (
 )
 from app.schemas.provider import ProviderStatus
 
+ServiceStatusValue = Literal["ok", "degraded", "down"]
+
 router = APIRouter()
 
 
@@ -26,7 +30,7 @@ def _to_summary_items(items: list, title_attr: str = "title", limit: int = 5) ->
     ]
 
 
-async def _probe_pg() -> str:
+async def _probe_pg() -> ServiceStatusValue:
     try:
         async with engine.connect() as conn:
             await conn.exec_driver_sql("SELECT 1")
@@ -35,7 +39,7 @@ async def _probe_pg() -> str:
         return "down"
 
 
-async def _probe_redis() -> str:
+async def _probe_redis() -> ServiceStatusValue:
     try:
         redis = await get_redis()
         await redis.ping()
@@ -44,7 +48,7 @@ async def _probe_redis() -> str:
         return "down"
 
 
-async def _probe_rag() -> str:
+async def _probe_rag() -> ServiceStatusValue:
     settings = get_settings()
     if settings.openai_api_key:
         return "ok"
@@ -123,7 +127,7 @@ async def get_dashboard_summary(
 
     services = await _get_services()
     all_ok = all(s.status == "ok" for s in services)
-    system_status = "ok" if all_ok else "degraded"
+    system_status: ServiceStatusValue = "ok" if all_ok else "degraded"
 
     return DashboardSummary(
         conversations_count=conversations_total,

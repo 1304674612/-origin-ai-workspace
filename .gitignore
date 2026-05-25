@@ -17,5 +17,6 @@ __pycache__
 .ruff_cache
 uploads
 storage
+*.db
 postgres-data
 redis-data

@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Next.js: build",
+      "type": "npm",
+      "script": "build",
+      "path": "apps/web",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Next.js: typecheck",
+      "type": "npm",
+      "script": "typecheck",
+      "path": "apps/web",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Frontend: test",
+      "type": "npm",
+      "script": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: test",
+      "type": "shell",
+      "command": "${workspaceFolder}/apps/api/.venv/bin/pytest",
+      "args": ["tests/", "-v"],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/api"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: mypy",
+      "type": "shell",
+      "command": "${workspaceFolder}/apps/api/.venv/bin/python",
+      "args": ["-m", "mypy", "app/"],
+      "options": {
+        "cwd": "${workspaceFolder}/apps/api"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

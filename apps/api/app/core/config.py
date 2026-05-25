@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     app_url: AnyHttpUrl | str = "http://localhost:3000"
     api_url: AnyHttpUrl | str = "http://localhost:8000"
     api_v1_prefix: str = "/api/v1"
-    current_version: str = "v0.3.0"
+    current_version: str = "v0.4.1"
 
     jwt_secret_key: str = Field(default="")
     app_encryption_key: str = Field(default="")
