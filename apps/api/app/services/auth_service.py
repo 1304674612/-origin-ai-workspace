@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -14,12 +15,9 @@ class AuthService:
         self.users = UserRepository(session)
 
     async def register(self, payload: RegisterRequest) -> TokenResponse:
-        if await self.users.get_by_email(payload.email):
-            raise OriginError(
-                "Registration failed. If you already have an account, please sign in instead.",
-                status.HTTP_409_CONFLICT,
-            )
-        if await self.users.get_by_username(payload.username):
+        email_exists = await self.users.get_by_email(payload.email)
+        username_exists = await self.users.get_by_username(payload.username)
+        if email_exists or username_exists:
             raise OriginError(
                 "Registration failed. If you already have an account, please sign in instead.",
                 status.HTTP_409_CONFLICT,
@@ -31,7 +29,14 @@ class AuthService:
             password_hash=hash_password(payload.password),
             full_name=payload.full_name,
         )
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except IntegrityError:
+            await self.session.rollback()
+            raise OriginError(
+                "Registration failed. If you already have an account, please sign in instead.",
+                status.HTTP_409_CONFLICT,
+            )
         token = create_access_token(str(user.id))
         return TokenResponse(access_token=token, user=UserRead.model_validate(user))
 

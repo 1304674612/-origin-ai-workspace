@@ -18,7 +18,7 @@ class DashboardStats(BaseModel):
     total_messages: int
     total_files: int
     indexed_documents: int
-    token_usage_today: int
+    token_usage_total: int
     provider_status: list[ProviderStatus]
     usage_series: list[UsagePoint]
 

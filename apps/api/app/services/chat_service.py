@@ -83,7 +83,13 @@ class ChatService:
                     chunks.append(delta)
                     yield f"event: token\ndata: {json.dumps({'delta': delta})}\n\n"
             except Exception as exc:
-                yield f"event: error\ndata: {json.dumps({'detail': str(exc)})}\n\n"
+                logger.warning("stream_chat_error", error=str(exc), exc_info=True)
+                try:
+                    await self.repository.delete_message(user_message)
+                    await self.session.commit()
+                except Exception:
+                    logger.warning("orphaned_message_cleanup_failed", exc_info=True)
+                yield f"event: error\ndata: {json.dumps({'detail': 'Streaming error occurred. Check provider configuration and API availability.'})}\n\n"
                 return
 
             assistant_content = "".join(chunks)
@@ -101,7 +107,8 @@ class ChatService:
                 )
                 await self.session.commit()
             except Exception as exc:
-                yield f"event: error\ndata: {json.dumps({'detail': str(exc)})}\n\n"
+                logger.warning("assistant_message_save_error", error=str(exc), exc_info=True)
+                yield f"event: error\ndata: {json.dumps({'detail': 'Failed to save assistant message'})}\n\n"
                 return
 
             yield f"event: done\ndata: {json.dumps({'ok': True})}\n\n"

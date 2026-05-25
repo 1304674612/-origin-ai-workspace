@@ -181,4 +181,7 @@ async def test_provider(
             models=model_list,
         )
     except Exception as exc:
-        raise OriginError(f"Provider test failed: {exc}", status.HTTP_400_BAD_REQUEST) from exc
+        raise OriginError(
+            "Provider test failed: could not connect to the provider API. Check your API key, base URL, and network connectivity.",
+            status.HTTP_400_BAD_REQUEST,
+        ) from exc

@@ -11,3 +11,9 @@ uploads
 postgres-data
 redis-data
 *.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json

@@ -290,7 +290,7 @@ export function ChatClient() {
                         value={renameInput}
                         onChange={(e) => setRenameInput(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") void submitRename(item.id);
+                          if (e.key === "Enter" && !e.nativeEvent.isComposing) void submitRename(item.id);
                           if (e.key === "Escape") setRenaming(null);
                         }}
                         onBlur={() => void submitRename(item.id)}
@@ -432,7 +432,7 @@ export function ChatClient() {
                     className="min-h-12 resize-none border-0 bg-transparent p-0 text-sm placeholder:text-zinc-500 focus-visible:ring-0"
                     rows={1}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.shiftKey) {
+                      if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                         event.preventDefault();
                         void submit();
                       }

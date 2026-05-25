@@ -56,7 +56,9 @@ async def _probe_rag() -> ServiceStatusValue:
 
 
 async def _get_services() -> list[ServiceStatus]:
-    pg_status, redis_status, rag_status = await _probe_pg(), await _probe_redis(), await _probe_rag()
+    pg_status = await _probe_pg()
+    redis_status = await _probe_redis()
+    rag_status = await _probe_rag()
     return [
         ServiceStatus(name="FastAPI", status="ok"),
         ServiceStatus(name="PostgreSQL", status=pg_status),
@@ -65,9 +67,13 @@ async def _get_services() -> list[ServiceStatus]:
     ]
 
 
-async def _get_usage_series(user_id) -> list[UsagePoint]:
+async def _get_usage_series(user_id, chat_repository) -> list[UsagePoint]:
+    daily = await chat_repository.token_usage_by_day(user_id, days=7)
+    if not daily:
+        return [UsagePoint(label="Today", tokens=0, latency_ms=0)]
     return [
-        UsagePoint(label="Today", tokens=0, latency_ms=0),
+        UsagePoint(label=entry["day"], tokens=entry["tokens"], latency_ms=0)
+        for entry in daily
     ]
 
 
@@ -105,9 +111,9 @@ async def get_dashboard_stats(session: DbSession, current_user: CurrentUser) -> 
         total_messages=await chat_repository.count_messages(current_user.id),
         total_files=await file_repository.count_files(current_user.id),
         indexed_documents=await rag_repository.count_documents(current_user.id),
-        token_usage_today=usage_total,
+        token_usage_total=usage_total,
         provider_status=providers,
-        usage_series=await _get_usage_series(current_user.id),
+        usage_series=await _get_usage_series(current_user.id, chat_repository),
     )
 
 

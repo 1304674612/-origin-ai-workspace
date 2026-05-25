@@ -73,6 +73,7 @@ class KnowledgeRepository:
 
     async def delete_base(self, kb: KnowledgeBase) -> None:
         await self.session.delete(kb)
+        await self.session.flush()
 
     async def create_base(
         self,
@@ -104,7 +105,7 @@ class KnowledgeRepository:
         )
         total = int(total_result.scalar_one())
         result = await self.session.execute(
-            base.options(selectinload(KnowledgeDocument.chunks))
+            base.options(selectinload(KnowledgeDocument.chunks).defer(DocumentChunk.content))
             .order_by(KnowledgeDocument.created_at.desc())
             .offset(offset)
             .limit(limit)
@@ -141,6 +142,10 @@ class KnowledgeRepository:
         self, document: KnowledgeDocument, knowledge_base_id: UUID | None
     ) -> KnowledgeDocument:
         document.knowledge_base_id = knowledge_base_id
+        if knowledge_base_id is not None:
+            kb = await self.get_base(knowledge_base_id, document.user_id)
+            if kb is not None:
+                document.user_id = kb.user_id
         await self.session.flush()
         return document
 
@@ -290,7 +295,7 @@ class KnowledgeRepository:
         knowledge_base_id: UUID | None,
         limit: int,
     ) -> list[RetrievalResult]:
-        result = await self.session.execute(
+        base = (
             select(DocumentChunk)
             .options(
                 selectinload(DocumentChunk.document),
@@ -299,13 +304,15 @@ class KnowledgeRepository:
             .join(KnowledgeDocument)
             .where(KnowledgeDocument.index_name == index_name)
         )
+        if knowledge_base_id is not None:
+            base = base.where(KnowledgeDocument.knowledge_base_id == knowledge_base_id)
+        base = base.limit(10000)
+        result = await self.session.execute(base)
         records = list(result.scalars().all())
         scored: list[RetrievalResult] = []
         for chunk in records:
             embedding = chunk.embeddings[-1] if chunk.embeddings else None
             if embedding is None or not embedding.vector_data:
-                continue
-            if knowledge_base_id is not None and chunk.document.knowledge_base_id != knowledge_base_id:
                 continue
             score = _cosine_similarity(query_vector, embedding.vector_data)
             scored.append(

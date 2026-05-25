@@ -30,7 +30,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           : await api.register({
               email: String(form.get("email")),
               username: String(form.get("username")),
-              full_name: String(form.get("full_name") || ""),
+              full_name: form.get("full_name") ? String(form.get("full_name")) : undefined,
               password: String(form.get("password"))
             });
       setSession(response);
@@ -104,7 +104,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </p>
       </div>
 
-      <p className="mt-16 text-xs text-zinc-600">Self-hosted AI workspace · v0.2</p>
+      <p className="mt-16 text-xs text-zinc-600">Self-hosted AI workspace · v0.4.2</p>
     </div>
   );
 }

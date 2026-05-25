@@ -1,3 +1,4 @@
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -43,3 +44,11 @@ def token_expires_seconds() -> int:
 
 def cookie_name() -> str:
     return "origin_token"
+
+
+def csrf_cookie_name() -> str:
+    return "origin_csrf_token"
+
+
+def generate_csrf_token() -> str:
+    return secrets.token_hex(32)

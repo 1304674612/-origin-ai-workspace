@@ -1,6 +1,7 @@
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -85,6 +86,10 @@ class ChatRepository:
         await self.session.flush()
         return message
 
+    async def delete_message(self, message: ChatMessage) -> None:
+        await self.session.delete(message)
+        await self.session.flush()
+
     async def count_conversations(self, user_id: UUID) -> int:
         result = await self.session.execute(
             select(func.count()).select_from(Conversation).where(Conversation.user_id == user_id)
@@ -108,3 +113,21 @@ class ChatRepository:
             .where(Conversation.user_id == user_id)
         )
         return int(result.scalar_one())
+
+    async def token_usage_by_day(self, user_id: UUID, days: int = 7) -> list[dict]:
+        since = datetime.now(UTC) - timedelta(days=days)
+        result = await self.session.execute(
+            select(
+                func.date(ChatMessage.created_at).label("day"),
+                func.coalesce(func.sum(ChatMessage.token_count), 0).label("tokens"),
+            )
+            .select_from(ChatMessage)
+            .join(Conversation)
+            .where(
+                Conversation.user_id == user_id,
+                ChatMessage.created_at >= since,
+            )
+            .group_by(func.date(ChatMessage.created_at))
+            .order_by("day")
+        )
+        return [{"day": str(row.day), "tokens": int(row.tokens)} for row in result.all()]

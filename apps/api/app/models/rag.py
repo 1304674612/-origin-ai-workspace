@@ -64,5 +64,7 @@ class DocumentChunk(Base):
 
     document: Mapped[KnowledgeDocument] = relationship(back_populates="chunks")
     embeddings: Mapped[list["EmbeddingRecord"]] = relationship(
-        back_populates="chunk", cascade="all, delete-orphan"
+        back_populates="chunk",
+        cascade="all, delete-orphan",
+        order_by="EmbeddingRecord.created_at",
     )

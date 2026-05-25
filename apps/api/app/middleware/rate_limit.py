@@ -9,18 +9,21 @@ SKIP_PATHS = {"/health", "/docs", "/openapi.json"}
 AUTH_PATHS = {"/api/v1/auth/login", "/api/v1/auth/register"}
 
 
+TRUSTED_PROXIES = {"127.0.0.1", "::1", "localhost"}
+
+
 def _extract_client_ip(scope: dict) -> str:
+    client = scope.get("client")
+    direct_ip = client[0] if client else "unknown"
+
     headers = dict(scope.get("headers", []))
     forwarded = headers.get(b"x-forwarded-for")
-    if forwarded:
+    if forwarded and direct_ip in TRUSTED_PROXIES:
         return forwarded.decode("latin-1").split(",")[0].strip()
     real_ip = headers.get(b"x-real-ip")
-    if real_ip:
+    if real_ip and direct_ip in TRUSTED_PROXIES:
         return real_ip.decode("latin-1")
-    client = scope.get("client")
-    if client:
-        return client[0]
-    return "unknown"
+    return direct_ip
 
 
 async def _redis_allow(key: str, limit: int, window: int = 60) -> bool:

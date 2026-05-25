@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     app_url: AnyHttpUrl | str = "http://localhost:3000"
     api_url: AnyHttpUrl | str = "http://localhost:8000"
     api_v1_prefix: str = "/api/v1"
-    current_version: str = "v0.4.1"
+    current_version: str = "v0.4.2"
 
     jwt_secret_key: str = Field(default="")
     app_encryption_key: str = Field(default="")
@@ -68,14 +68,19 @@ class Settings(BaseSettings):
         return self.max_upload_size_mb * 1024 * 1024
 
 
+import asyncio
+
 _redis_pool: aioredis.Redis | None = None
+_redis_lock = asyncio.Lock()
 
 
 async def get_redis() -> aioredis.Redis:
     global _redis_pool
     if _redis_pool is None:
-        settings = get_settings()
-        _redis_pool = aioredis.from_url(settings.redis_url, decode_responses=True)
+        async with _redis_lock:
+            if _redis_pool is None:
+                settings = get_settings()
+                _redis_pool = aioredis.from_url(settings.redis_url, decode_responses=True)
     return _redis_pool
 
 

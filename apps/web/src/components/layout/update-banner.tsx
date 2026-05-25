@@ -9,7 +9,11 @@ export function UpdateBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    api.updateCheck().then(setUpdate).catch(() => {});
+    let cancelled = false;
+    api.updateCheck().then((result) => {
+      if (!cancelled) setUpdate(result);
+    }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   if (!update?.update_available || dismissed) return null;

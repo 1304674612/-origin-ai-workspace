@@ -10,7 +10,11 @@ export function ProtectedPage({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled) setAuthed(true);
+    }, 5000);
     isAuthenticated().then((ok) => {
+      clearTimeout(timeout);
       if (cancelled) return;
       if (!ok) {
         router.replace("/auth/login");
@@ -18,7 +22,10 @@ export function ProtectedPage({ children }: { children: React.ReactNode }) {
       }
       setAuthed(true);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [router]);
 
   return (

@@ -31,8 +31,17 @@ export default function ErrorPage({
         wordBreak: "break-all"
       }}>
         {error.message}
-        {"\n\n"}
-        {error.stack}
+        {process.env.NODE_ENV === "development" ? (
+          <>
+            {"\n\n"}
+            {error.stack}
+          </>
+        ) : (
+          <>
+            {"\n\n"}
+            If this persists, please check the server logs or contact support.
+          </>
+        )}
       </pre>
       <button
         onClick={() => reset()}

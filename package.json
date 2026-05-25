@@ -1,6 +1,6 @@
 {
   "name": "origin-ai-workspace",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "A modern self-hosted AI workspace for developers, students, NAS users, and personal workflows.",
   "license": "MIT",

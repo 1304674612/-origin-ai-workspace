@@ -11,7 +11,7 @@ export type DashboardStats = {
   total_messages: number;
   total_files: number;
   indexed_documents: number;
-  token_usage_today: number;
+  token_usage_total: number;
   provider_status: Array<{
     provider: string;
     configured: boolean;
@@ -58,8 +58,15 @@ export async function isAuthenticated(): Promise<boolean> {
   }
 }
 
+type StoredUser = Pick<User, "id" | "email" | "username">;
+
 export function setSession(response: AuthResponse) {
-  window.localStorage.setItem("origin_user", JSON.stringify(response.user));
+  const stored: StoredUser = {
+    id: response.user.id,
+    email: response.user.email,
+    username: response.user.username,
+  };
+  window.localStorage.setItem("origin_user", JSON.stringify(stored));
 }
 
 export async function clearSession() {
@@ -70,20 +77,33 @@ export async function clearSession() {
   }).catch(() => {});
 }
 
-export function getStoredUser(): User | null {
+export function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem("origin_user");
-    return raw ? (JSON.parse(raw) as User) : null;
+    return raw ? (JSON.parse(raw) as StoredUser) : null;
   } catch {
     return null;
   }
+}
+
+function _getCsrfToken(): string {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(/(?:^|;\s*)origin_csrf_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : "";
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
+  }
+  const method = (options.method ?? "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
+    const csrfToken = _getCsrfToken();
+    if (csrfToken) {
+      headers.set("X-CSRF-Token", csrfToken);
+    }
   }
 
   const response = await fetch(apiUrl(path), {
@@ -138,6 +158,36 @@ function unwrapResponse<T>(json: unknown): T {
     }
   }
   return json as T;
+}
+
+function processEvent(
+  event: string,
+  handlers: {
+    onMeta?: (conversationId: string) => void;
+    onToken: (delta: string) => void;
+    onError?: (detail: string) => void;
+    onDone?: () => void;
+  },
+) {
+  const eventType = event.match(/^event: (.+)$/m)?.[1];
+  const data = event.match(/^data: (.+)$/m)?.[1];
+  if (!data) return;
+  try {
+    const parsed = JSON.parse(data) as Record<string, unknown>;
+    if (eventType === "meta" && typeof parsed.conversation_id === "string") {
+      handlers.onMeta?.(parsed.conversation_id);
+    }
+    if (eventType === "token" && typeof parsed.delta === "string") {
+      handlers.onToken(parsed.delta);
+    }
+    if (eventType === "error") {
+      const detail = typeof parsed.detail === "string" ? parsed.detail : "Streaming failed";
+      handlers.onError?.(detail);
+    }
+    if (eventType === "done") handlers.onDone?.();
+  } catch {
+    // Skip unparseable events
+  }
 }
 
 export const api = {
@@ -199,9 +249,13 @@ export const api = {
     },
     signal?: AbortSignal,
   ) => {
+    const streamHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    const csrfToken = _getCsrfToken();
+    if (csrfToken) streamHeaders["X-CSRF-Token"] = csrfToken;
+
     const response = await fetch(apiUrl("/api/v1/chat/stream"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: streamHeaders,
       credentials: "include",
       body: JSON.stringify(payload),
       signal,
@@ -217,30 +271,20 @@ export const api = {
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        if (buffer.trim()) {
+          const events = buffer.split("\n\n");
+          for (const event of events) {
+            processEvent(event, handlers);
+          }
+        }
+        break;
+      }
       buffer += decoder.decode(value, { stream: true });
       const events = buffer.split("\n\n");
       buffer = events.pop() ?? "";
       for (const event of events) {
-        const eventType = event.match(/^event: (.+)$/m)?.[1];
-        const data = event.match(/^data: (.+)$/m)?.[1];
-        if (!data) continue;
-        try {
-          const parsed = JSON.parse(data) as Record<string, unknown>;
-          if (eventType === "meta" && typeof parsed.conversation_id === "string") {
-            handlers.onMeta?.(parsed.conversation_id);
-          }
-          if (eventType === "token" && typeof parsed.delta === "string") {
-            handlers.onToken(parsed.delta);
-          }
-          if (eventType === "error") {
-            const detail = typeof parsed.detail === "string" ? parsed.detail : "Streaming failed";
-            handlers.onError?.(detail);
-          }
-          if (eventType === "done") handlers.onDone?.();
-        } catch {
-          continue;
-        }
+        processEvent(event, handlers);
       }
     }
   },

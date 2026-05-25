@@ -50,7 +50,7 @@ export function LandingPage() {
             transition={{ duration: 0.8 }}
             className="mx-auto max-w-4xl text-center"
           >
-            <Badge className="mx-auto mb-6 w-fit">Self-hosted AI workspace v0.2</Badge>
+            <Badge className="mx-auto mb-6 w-fit">Self-hosted AI workspace v0.4.2</Badge>
             <h1 className="text-5xl font-semibold leading-tight tracking-normal text-white md:text-7xl">
               ORIGIN AI Workspace
             </h1>

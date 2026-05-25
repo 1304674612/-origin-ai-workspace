@@ -25,6 +25,9 @@ export function getBlogPosts(): BlogPost[] {
 
 export function getBlogPost(slug: string): BlogPost {
   const fullPath = path.join(BLOG_DIR, `${slug}.md`);
+  if (!fs.existsSync(fullPath)) {
+    throw new Error(`Blog post not found: ${slug}`);
+  }
   const source = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(source);
   return {
@@ -32,7 +35,7 @@ export function getBlogPost(slug: string): BlogPost {
     title: data.title,
     description: data.description,
     date: data.date,
-    tags: data.tags ?? [],
+    tags: Array.isArray(data.tags) ? data.tags : (data.tags ? [data.tags] : []),
     category: data.category ?? "Engineering",
     content,
     readingMinutes: Math.max(1, Math.ceil(content.split(/\s+/).length / 220))

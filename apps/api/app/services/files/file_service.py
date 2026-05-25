@@ -99,8 +99,9 @@ class FileService:
                 file_asset,
                 status=FileStatus.failed,
                 extracted_text=None,
-                metadata={"parse_error": str(exc)},
+                metadata={"parse_error": "Parsing or indexing failed"},
             )
+            logger.warning("file_parse_failed", file_id=str(file_asset.id), error=str(exc), exc_info=True)
 
         await self.session.commit()
         await self.session.refresh(file_asset)

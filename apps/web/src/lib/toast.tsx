@@ -27,15 +27,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((message: string, variant: "success" | "error" = "success") => {
     const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { id, message, variant }]);
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+      <div role="status" aria-live="polite" className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}

@@ -47,6 +47,29 @@ jobs:
     defaults:
       run:
         working-directory: apps/api
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: origin
+          POSTGRES_PASSWORD: origin_password
+          POSTGRES_DB: origin_ai
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -70,6 +93,9 @@ jobs:
 
       - name: Tests
         run: pytest tests/ -v --cov=app --cov-report=term-missing
+        env:
+          JWT_SECRET_KEY: ci-test-key-must-be-at-least-32-chars-long
+          APP_ENCRYPTION_KEY: ci-encryption-key-at-least-32-chars
 
       - name: Smoke test
         run: |
@@ -80,6 +106,7 @@ jobs:
           "
         env:
           JWT_SECRET_KEY: ci-test-key-must-be-at-least-32-characters
+          APP_ENCRYPTION_KEY: ci-encryption-key-must-be-32-chars
 
   # ── Docker ────────────────────────────────────────────
   docker:

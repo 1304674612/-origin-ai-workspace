@@ -144,8 +144,8 @@ export default function SettingsPage() {
           <div className="mt-8 border-t border-white/10 pt-8">
             <Button
               variant="ghost"
-              onClick={() => {
-                clearSession();
+              onClick={async () => {
+                await clearSession();
                 router.push("/auth/login");
               }}
             >

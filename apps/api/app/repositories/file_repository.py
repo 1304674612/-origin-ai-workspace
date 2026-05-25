@@ -1,3 +1,4 @@
+from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -74,3 +75,12 @@ class FileRepository:
             select(func.count()).select_from(FileAsset).where(FileAsset.user_id == user_id)
         )
         return int(result.scalar_one())
+
+    async def delete(self, file_asset: FileAsset) -> None:
+        storage_path = file_asset.storage_path
+        await self.session.delete(file_asset)
+        await self.session.flush()
+        try:
+            Path(storage_path).unlink(missing_ok=True)
+        except OSError:
+            pass

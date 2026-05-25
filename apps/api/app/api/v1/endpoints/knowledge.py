@@ -278,19 +278,28 @@ async def reindex_base(
     if not extracted_text:
         raise OriginError("File has no extracted text to index", status.HTTP_400_BAD_REQUEST)
 
-    existing_docs, _ = await repo.list_documents(
-        current_user.id, kb_id=kb_id, limit=1000
-    )
-    for doc in existing_docs:
-        if doc.file_id == payload.file_id:
-            await repo.delete_document(doc)
+    offset = 0
+    while True:
+        existing_docs, _ = await repo.list_documents(
+            current_user.id, kb_id=kb_id, offset=offset, limit=200
+        )
+        if not existing_docs:
+            break
+        for doc in existing_docs:
+            if doc.file_id == payload.file_id:
+                await repo.delete_document(doc)
+        offset += len(existing_docs)
 
-    await IndexingService(session, TextChunker(), build_embedding_provider()).index_file(
-        current_user,
-        file_asset,
-        extracted_text,
-        knowledge_base_id=kb_id,
-        metadata={"knowledge_base_id": str(kb_id)},
-    )
-    await session.commit()
+    try:
+        await IndexingService(session, TextChunker(), build_embedding_provider()).index_file(
+            current_user,
+            file_asset,
+            extracted_text,
+            knowledge_base_id=kb_id,
+            metadata={"knowledge_base_id": str(kb_id)},
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
     return {"ok": True}

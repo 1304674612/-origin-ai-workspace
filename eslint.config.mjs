@@ -20,4 +20,12 @@ export default [
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      "no-eval": "error",
+      "no-implied-eval": "error",
+      "no-script-url": "error",
+      "react/jsx-no-target-blank": ["error", { warnOnSpreadAttributes: true }],
+    },
+  },
 ];

@@ -1,10 +1,16 @@
 from collections.abc import AsyncIterator
+from functools import lru_cache
 
 from openai import AsyncOpenAI
 
 from app.core.config import get_settings
 from app.core.exceptions import OriginError
 from app.services.ai.types import AIProvider, ChatCompletionRequest
+
+
+@lru_cache(maxsize=8)
+def _get_client(api_key: str, base_url: str | None = None) -> AsyncOpenAI:
+    return AsyncOpenAI(api_key=api_key, base_url=base_url)
 
 
 class OpenAICompatibleProvider(AIProvider):
@@ -23,7 +29,7 @@ class OpenAICompatibleProvider(AIProvider):
         if not self.api_key:
             raise OriginError(f"{self.name} API key is not configured")
 
-        client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+        client = _get_client(self.api_key, self.base_url)
         stream = await client.chat.completions.create(
             model=request.model,
             messages=[{"role": item.role, "content": item.content} for item in request.messages],

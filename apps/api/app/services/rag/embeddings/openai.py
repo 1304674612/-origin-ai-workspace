@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 from openai import AsyncOpenAI
 
 from app.core.exceptions import OriginError
 from app.services.rag.embeddings.base import EmbeddingProvider
+
+
+@lru_cache(maxsize=4)
+def _get_embedding_client(api_key: str) -> AsyncOpenAI:
+    return AsyncOpenAI(api_key=api_key)
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
@@ -17,7 +24,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
     async def embed_documents(self, texts: list[str]) -> list[list[float]]:
         if not self.api_key:
             raise OriginError("OpenAI embedding API key is not configured")
-        client = AsyncOpenAI(api_key=self.api_key)
+        client = _get_embedding_client(self.api_key)
         response = await client.embeddings.create(model=self.model_name, input=texts)
         return [item.embedding for item in response.data]
 

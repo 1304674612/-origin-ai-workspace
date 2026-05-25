@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-zinc-400 transition hover:bg-white/8 hover:text-white",
-                pathname.startsWith(item.href) && "bg-white/10 text-white"
+                (pathname === item.href || pathname.startsWith(item.href + "/")) && "bg-white/10 text-white"
               )}
             >
               <item.icon className="h-4 w-4" />
@@ -53,8 +53,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             variant="ghost"
             size="sm"
             className="mt-3 w-full justify-start"
-            onClick={() => {
-              clearSession();
+            onClick={async () => {
+              await clearSession();
               router.push("/auth/login");
             }}
           >
@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 href={item.href}
                 className={cn(
                   "rounded-lg px-2.5 py-2 text-xs text-zinc-400 transition",
-                  pathname.startsWith(item.href) && "bg-white/10 text-white"
+                  (pathname === item.href || pathname.startsWith(item.href + "/")) && "bg-white/10 text-white"
                 )}
               >
                 <item.icon className="mx-auto h-4 w-4" />

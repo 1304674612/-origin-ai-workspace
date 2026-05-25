@@ -24,10 +24,13 @@ export function DesktopPet() {
   const [saving, setSaving] = useState(false);
   const [docs, setDocs] = useState<KnowledgeDoc[]>([]);
   const [viewingDoc, setViewingDoc] = useState<KnowledgeDoc | null>(null);
+  const [user, setUser] = useState<ReturnType<typeof getStoredUser>>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const user = getStoredUser();
+  useEffect(() => {
+    setUser(getStoredUser());
+  }, []);
 
   const loadDocs = useCallback(async () => {
     if (!user) return;

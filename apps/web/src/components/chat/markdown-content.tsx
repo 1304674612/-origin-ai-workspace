@@ -16,7 +16,7 @@ function MarkdownContentInner({ content, streaming = false }: { content: string;
         rehypePlugins={streaming ? [] : [rehypeHighlight]}
         components={{
           a: ({ children, ...props }) => (
-            <a {...props} target="_blank" rel="noreferrer">
+            <a {...props} target="_blank" rel="nofollow noopener noreferrer">
               {children}
             </a>
           ),
